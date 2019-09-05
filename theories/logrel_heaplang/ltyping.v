@@ -3,85 +3,45 @@ From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
 
 (* The domain of semantic types: Iris predicates over values *)
-Record lty Σ := Lty {
-  lty_car :> val → iProp Σ;
-  lty_persistent v : Persistent (lty_car v)
-}.
-Arguments Lty {_} _%I {_}.
-Arguments lty_car {_} _ _ : simpl never.
+Definition lty Σ := val -d> iProp Σ.
 Bind Scope lty_scope with lty.
 Delimit Scope lty_scope with lty.
-Existing Instance lty_persistent.
-
-(* The COFE structure on semantic types *)
-Section lty_ofe.
-  Context `{Σ : gFunctors}.
-
-  Instance lty_equiv : Equiv (lty Σ) := λ A B, ∀ w, A w ≡ B w.
-  Instance lty_dist : Dist (lty Σ) := λ n A B, ∀ w, A w ≡{n}≡ B w.
-  Lemma lty_ofe_mixin : OfeMixin (lty Σ).
-  Proof. by apply (iso_ofe_mixin (lty_car : _ → val -d> _)). Qed.
-  Canonical Structure ltyC := OfeT (lty Σ) lty_ofe_mixin.
-  Global Instance lty_cofe : Cofe ltyC.
-  Proof.
-    apply (iso_cofe_subtype' (λ A : val -d> iProp Σ, ∀ w, Persistent (A w))
-      (@Lty _) lty_car)=> //.
-    - apply _.
-    - apply limit_preserving_forall=> w.
-      by apply bi.limit_preserving_Persistent=> n ??.
-  Qed.
-
-  Global Instance lty_inhabited : Inhabited (lty Σ) := populate (Lty inhabitant).
-
-  Global Instance lty_car_ne n : Proper (dist n ==> (=) ==> dist n) lty_car.
-  Proof. by intros A A' ? w ? <-. Qed.
-  Global Instance lty_car_proper : Proper ((≡) ==> (=) ==> (≡)) lty_car.
-  Proof. by intros A A' ? w ? <-. Qed.
-End lty_ofe.
-
-Arguments ltyC : clear implicits.
 
 (* Typing for operators *)
 Class LTyUnboxed `{heapG Σ} (A : lty Σ) :=
   lty_unboxed v : A v -∗ ⌜ val_is_unboxed v ⌝.
 
 Class LTyUnOp `{heapG Σ} (op : un_op) (A B : lty Σ) :=
-  lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∧ B w.
+  lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∗ B w.
 
 Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
-  lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∧ B w.
+  lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∗ B w.
+
+(* A type is copy if its proposition is persistent at any value *)
+Definition LTyCopy `(A : lty Σ) := ∀ w, Persistent (A w).
 
 (* The type formers *)
 Section types.
   Context `{heapG Σ}.
 
-  Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝%I).
-  Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
-  Definition lty_int : lty Σ := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
+  Definition lty_unit : lty Σ := (λ w, ⌜ w = #() ⌝%I).
+  Definition lty_bool : lty Σ := (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
+  Definition lty_int : lty Σ := (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
 
-  Definition lty_arr (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    □ ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
+  Definition lty_arr (A1 A2 : lty Σ) : lty Σ := (λ w,
+    ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
 
-  Definition lty_prod (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∧ A1 w1 ∧ A2 w2)%I.
+  Definition lty_prod (A1 A2 : lty Σ) : lty Σ := (λ w,
+    ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∗ A1 w1 ∗ A2 w2)%I.
 
-  Definition lty_sum (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    (∃ w1, ⌜w = InjLV w1⌝ ∧ A1 w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∧ A2 w2))%I.
+  Definition lty_sum (A1 A2 : lty Σ) : lty Σ := (λ w,
+    (∃ w1, ⌜w = InjLV w1⌝ ∗ A1 w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∗ A2 w2))%I.
 
-  Definition lty_forall (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
-    □ ∀ A : lty Σ, WP w #() {{ w, C A w }})%I.
-  Definition lty_exist (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
-    ∃ A : lty Σ, C A w)%I.
-
-  Definition lty_rec1 (C : ltyC Σ -n> ltyC Σ) (rec : lty Σ) : lty Σ := Lty (λ w,
-    ▷ C rec w)%I.
-  Instance lty_rec1_contractive C : Contractive (lty_rec1 C).
-  Proof. solve_contractive. Qed.
-  Definition lty_rec (C : ltyC Σ -n> ltyC Σ) : lty Σ := fixpoint (lty_rec1 C).
+  (* TODO: Copy paste the definition for recursive types here, to ask question about ltyC *)
 
   Definition tyN := nroot .@ "ty".
-  Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ l : loc, ⌜w = #l⌝ ∧ inv (tyN .@ l) (∃ v, l ↦ v ∗ A v))%I.
+  Definition lty_ref (A : lty Σ) : lty Σ := (λ w,
+    ∃ l : loc, ⌜w = #l⌝ ∗ (∃ v, l ↦ v ∗ A v))%I.
 End types.
 
 (* Nice notations *)
@@ -89,25 +49,24 @@ Notation "()" := lty_unit : lty_scope.
 Infix "→" := lty_arr : lty_scope.
 Infix "*" := lty_prod : lty_scope.
 Infix "+" := lty_sum : lty_scope.
-Notation "∀ A1 .. An , C" :=
-  (lty_forall (λ A1, .. (lty_forall (λ An, C%lty)) ..)) : lty_scope.
-Notation "∃ A1 .. An , C" :=
-  (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
 Notation "'ref' A" := (lty_ref A) : lty_scope.
+
+(* Context splitting *)
+Inductive split {Σ} : list (lty Σ) → list (lty Σ) → list (lty Σ) → Prop :=
+| split_empty : split [] [] []
+| split_copy : ∀ Γ Γ1 Γ2 x, LTyCopy x → split Γ Γ1 Γ2 → split (x :: Γ) (x :: Γ1) (x :: Γ2)
+| split_move_left : ∀ Γ Γ1 Γ2 x, split Γ Γ1 Γ2 → split (x :: Γ) (x :: Γ1) Γ2
+| split_move_right : ∀ Γ Γ1 Γ2 x, split Γ Γ1 Γ2 → split (x :: Γ) Γ1 (x :: Γ2).
 
 (* The semantic typing judgment *)
 Definition env_ltyped `{heapG Σ} (Γ : gmap string (lty Σ))
     (vs : gmap string val) : iProp Σ :=
-  ([∗ map] i ↦ A;v ∈ Γ; vs, lty_car A v)%I.
+  ([∗ map] i ↦ A;v ∈ Γ; vs, A v)%I.
 Definition ltyped  `{heapG Σ}
     (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (□ ∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
   (at level 100, e at next level, A at level 200).
-
-(* To unfold a recursive type, we need to take a step. We thus define the
-unfold operator to be the identity function. *)
-Definition rec_unfold : val := λ: "x", "x".
 
 Section types_properties.
   Context `{heapG Σ}.
