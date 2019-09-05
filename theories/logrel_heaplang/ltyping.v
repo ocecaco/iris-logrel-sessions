@@ -52,11 +52,11 @@ Infix "+" := lty_sum : lty_scope.
 Notation "'ref' A" := (lty_ref A) : lty_scope.
 
 (* Context splitting *)
-Inductive split {Σ} : list (lty Σ) → list (lty Σ) → list (lty Σ) → Prop :=
+Inductive split {Σ} : list (string * lty Σ) → list (string * lty Σ) → list (string * lty Σ) → Prop :=
 | split_empty : split [] [] []
-| split_copy : ∀ Γ Γ1 Γ2 x, LTyCopy x → split Γ Γ1 Γ2 → split (x :: Γ) (x :: Γ1) (x :: Γ2)
-| split_move_left : ∀ Γ Γ1 Γ2 x, split Γ Γ1 Γ2 → split (x :: Γ) (x :: Γ1) Γ2
-| split_move_right : ∀ Γ Γ1 Γ2 x, split Γ Γ1 Γ2 → split (x :: Γ) Γ1 (x :: Γ2).
+| split_copy : ∀ Γ Γ1 Γ2 x A, LTyCopy A → split Γ Γ1 Γ2 → split ((x, A) :: Γ) ((x, A) :: Γ1) ((x, A) :: Γ2)
+| split_move_left : ∀ Γ Γ1 Γ2 x A, split Γ Γ1 Γ2 → split ((x, A) :: Γ) ((x, A) :: Γ1) Γ2
+| split_move_right : ∀ Γ Γ1 Γ2 x A, split Γ Γ1 Γ2 → split ((x, A) :: Γ) Γ1 ((x, A) :: Γ2).
 
 (* The semantic typing judgment *)
 Definition env_ltyped `{heapG Σ} (Γ : gmap string (lty Σ))
