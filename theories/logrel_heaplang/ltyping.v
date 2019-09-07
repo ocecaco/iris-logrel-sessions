@@ -79,7 +79,7 @@ Section types.
 
   Definition tyN := nroot .@ "ty".
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ l : loc, ⌜w = #l⌝ ∗ inv (tyN .@ l) (∃ v, l ↦ v ∗ A v))%I.
+    ∃ l : loc, ⌜w = #l⌝ ∗ (∃ v, l ↦ v ∗ A v))%I.
 End types.
 
 (* Nice notations *)
