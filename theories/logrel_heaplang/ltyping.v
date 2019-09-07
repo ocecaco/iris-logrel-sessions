@@ -44,10 +44,10 @@ Class LTyUnboxed `{heapG Σ} (A : lty Σ) :=
   lty_unboxed v : A v -∗ ⌜ val_is_unboxed v ⌝.
 
 Class LTyUnOp `{heapG Σ} (op : un_op) (A B : lty Σ) :=
-  lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∧ B w.
+  lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∗ B w.
 
 Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
-  lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∧ B w.
+  lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∗ B w.
 
 (* The type formers *)
 Section types.
@@ -61,10 +61,10 @@ Section types.
     □ ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
 
   Definition lty_prod (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∧ A1 w1 ∧ A2 w2)%I.
+    ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∗ A1 w1 ∗ A2 w2)%I.
 
   Definition lty_sum (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    (∃ w1, ⌜w = InjLV w1⌝ ∧ A1 w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∧ A2 w2))%I.
+    (∃ w1, ⌜w = InjLV w1⌝ ∗ A1 w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∗ A2 w2))%I.
 
   Definition lty_forall (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
     □ ∀ A : lty Σ, WP w #() {{ w, C A w }})%I.
@@ -79,7 +79,7 @@ Section types.
 
   Definition tyN := nroot .@ "ty".
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ l : loc, ⌜w = #l⌝ ∧ inv (tyN .@ l) (∃ v, l ↦ v ∗ A v))%I.
+    ∃ l : loc, ⌜w = #l⌝ ∗ inv (tyN .@ l) (∃ v, l ↦ v ∗ A v))%I.
 End types.
 
 (* Nice notations *)
@@ -134,7 +134,7 @@ Section types_properties.
   (* Environments *)
   Lemma env_ltyped_lookup Γ vs x A :
     Γ !! x = Some A →
-    env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∧ A v.
+    env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∗ A v.
   Proof.
     iIntros (HΓx) "HΓ".
     iDestruct (big_sepM2_lookup_1 with "HΓ") as (v ?) "H"; eauto.
