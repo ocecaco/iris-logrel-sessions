@@ -6,4 +6,8 @@ stdenv.mkDerivation {
     m4
     opam
   ];
+
+  shellHook = ''
+eval $(opam env)
+  '';
 }
