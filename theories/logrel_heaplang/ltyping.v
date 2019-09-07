@@ -103,6 +103,35 @@ Definition ltyped  `{heapG Σ}
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
   (at level 100, e at next level, A at level 200).
 
+(* Context combining *)
+Definition env_compatible `{heapG Σ} Γ1 Γ2 := (∀ vs, env_ltyped (Γ1 ∪ Γ2) vs -∗ env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)%I.
+
+(* Definition test_ty_env `{heapG Σ} : gmap string (lty Σ) := {["x" := (ref ())%lty]}. *)
+(* Definition test_val_env (l : loc) : gmap string val := {["x" := #l]}. *)
+
+(* Lemma union_idemp {A} (Γ : gmap string A): Γ ∪ Γ = Γ. *)
+(* Proof. *)
+(*   unfold union. *)
+(*   unfold map_union. *)
+(*   apply union_with_idemp. *)
+(*   by intros i x Hlookup. *)
+(* Qed. *)
+
+(* (* big_sepM2_singleton *) *)
+
+(* Example test_incompat `{heapG Σ} (l : loc) : *)
+(*   (l ↦ #() -∗ env_compatible test_ty_env test_ty_env -∗ False)%I. *)
+(* Proof. *)
+(*   iIntros "Hl Hcompat". *)
+(*   iSpecialize ("Hcompat" $! (test_val_env l)). *)
+(*   rewrite union_idemp. *)
+(*   rewrite /env_ltyped /big_sepM2 map_zip_with_singleton big_sepM_singleton. simpl. *)
+(*   assert (Hlookupty: test_ty_env !! "x" = Some (ref ())%lty). *)
+(*   { rewrite /test_ty_env. by apply lookup_singleton_Some. } *)
+(*   assert (Hlookupval: test_val_env l !! "x" = Some #l). *)
+(*   { rewrite /test_val_env. by apply lookup_singleton_Some. } *)
+(*   . *)
+
 (* To unfold a recursive type, we need to take a step. We thus define the
 unfold operator to be the identity function. *)
 Definition rec_unfold : val := λ: "x", "x".
@@ -144,7 +173,8 @@ Section types_properties.
     env_ltyped (binder_insert x A Γ) (binder_insert x v vs).
   Proof.
     destruct x as [|x]=> /=; first by auto.
-    iIntros "#HA #HΓ". by iApply (big_sepM2_insert_2 with "[] HΓ").
+    iIntros "HA HΓ".
+    by iApply (big_sepM2_insert_2 with "[HA] HΓ").
   Qed.
 
   (* Unboxed types *)
@@ -194,40 +224,43 @@ Section types_properties.
   (* The semantic typing rules *)
   Lemma ltyped_var Γ (x : string) A : Γ !! x = Some A → Γ ⊨ x : A.
   Proof.
-    iIntros (HΓx vs) "!# #HΓ /=".
+    iIntros (HΓx vs) "HΓ /=".
     iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "HA"; first done.
     by iApply wp_value.
   Qed.
 
   Lemma ltyped_unit Γ : Γ ⊨ #() : ().
-  Proof. iIntros (vs) "!# _ /=". by iApply wp_value. Qed.
+  Proof. iIntros (vs) "_ /=". by iApply wp_value. Qed.
   Lemma ltyped_bool Γ (b : bool) : Γ ⊨ #b : lty_bool.
-  Proof. iIntros (vs) "!# _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
+  Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
   Lemma ltyped_nat Γ (n : Z) : Γ ⊨ #n : lty_int.
-  Proof. iIntros (vs) "!# _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
+  Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
 
-  Lemma ltyped_rec Γ f x e A1 A2 :
-    (binder_insert f (A1 → A2)%lty (binder_insert x A1 Γ) ⊨ e : A2) -∗
-    Γ ⊨ (rec: f x := e) : A1 → A2.
-  Proof.
-    iIntros "#H" (vs) "!# #HΓ /=". wp_pures. iLöb as "IH".
-    iIntros "!#" (v) "#HA1". wp_pures. set (r := RecV f x _).
-    iSpecialize ("H" $! (binder_insert f r (binder_insert x v vs)) with "[#]").
-    { iApply (env_ltyped_insert with "IH"). by iApply env_ltyped_insert. }
-    destruct x as [|x], f as [|f]; rewrite /= -?subst_map_insert //.
-    destruct (decide (x = f)) as [->|].
-    - by rewrite subst_subst delete_idemp insert_insert -subst_map_insert.
-    - rewrite subst_subst_ne // -subst_map_insert.
-      by rewrite -delete_insert_ne // -subst_map_insert.
-  Qed.
+  (* Lemma ltyped_rec Γ f x e A1 A2 : *)
+  (*   (binder_insert f (A1 → A2)%lty (binder_insert x A1 Γ) ⊨ e : A2) -∗ *)
+  (*   Γ ⊨ (rec: f x := e) : A1 → A2. *)
+  (* Proof. *)
+  (*   iIntros "#H" (vs) "!# #HΓ /=". wp_pures. iLöb as "IH". *)
+  (*   iIntros "!#" (v) "#HA1". wp_pures. set (r := RecV f x _). *)
+  (*   iSpecialize ("H" $! (binder_insert f r (binder_insert x v vs)) with "[#]"). *)
+  (*   { iApply (env_ltyped_insert with "IH"). by iApply env_ltyped_insert. } *)
+  (*   destruct x as [|x], f as [|f]; rewrite /= -?subst_map_insert //. *)
+  (*   destruct (decide (x = f)) as [->|]. *)
+  (*   - by rewrite subst_subst delete_idemp insert_insert -subst_map_insert. *)
+  (*   - rewrite subst_subst_ne // -subst_map_insert. *)
+  (*     by rewrite -delete_insert_ne // -subst_map_insert. *)
+  (* Qed. *)
 
   Lemma ltyped_app Γ e1 e2 A1 A2 :
     (Γ ⊨ e1 : A1 → A2) -∗ (Γ ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
   Proof.
-    iIntros "#H1 #H2" (vs) "!# #HΓ /=".
-    wp_apply (wp_wand with "(H2 [//])"); iIntros (w) "#HA1".
-    wp_apply (wp_wand with "(H1 [//])"); iIntros (v) "#HA". by iApply "HA".
-  Qed.
+    iIntros "H1 H2" (vs) "HΓ /=".
+    wp_apply (wp_wand with "(H2 [HΓ //])").
+    iIntros (v) "HA".
+    wp_apply (wp_wand with "(H1 [])").
+    - admit. (* oops, our environment was eaten by the other branch, we need to split the context here *)
+    - iIntros (f) "Hf". iApply ("Hf" $! v with "HA").
+  Admitted.
 
   Lemma ltyped_fold Γ e (B : ltyC Σ -n> ltyC Σ) :
     (Γ ⊨ e : B (lty_rec B)) -∗ Γ ⊨ e : lty_rec B.
