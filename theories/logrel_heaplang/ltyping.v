@@ -58,7 +58,7 @@ Section types.
   Definition lty_int : lty Σ := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
 
   Definition lty_arr (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    □ ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
+    ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
 
   Definition lty_prod (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
     ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∗ A1 w1 ∗ A2 w2)%I.
@@ -67,7 +67,7 @@ Section types.
     (∃ w1, ⌜w = InjLV w1⌝ ∗ A1 w1) ∨ (∃ w2, ⌜w = InjRV w2⌝ ∗ A2 w2))%I.
 
   Definition lty_forall (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
-    □ ∀ A : lty Σ, WP w #() {{ w, C A w }})%I.
+    ∀ A : lty Σ, WP w #() {{ w, C A w }})%I.
   Definition lty_exist (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
     ∃ A : lty Σ, C A w)%I.
 
