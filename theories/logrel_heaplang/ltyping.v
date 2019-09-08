@@ -103,8 +103,34 @@ Definition ltyped  `{heapG Σ}
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
   (at level 100, e at next level, A at level 200).
 
-(* Context combining *)
-Definition env_compatible `{heapG Σ} Γ1 Γ2 := (∀ vs, env_ltyped (Γ1 ∪ Γ2) vs -∗ env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)%I.
+(* Context compatibility *)
+
+(* TODO*)
+Definition restrict `{heapG Σ} (Γ : gmap string (lty Σ)) (vs : gmap string val) : gmap string val := filter (λ (kv : string * val), is_Some (Γ !! fst kv)) vs.
+
+Lemma restrict_empty `{heapG Σ} vs:
+  restrict ∅ vs = ∅.
+Proof.
+  rewrite /restrict.
+  apply map_empty.
+  intros i.
+  rewrite map_filter_lookup_None.
+  right.
+  intros x Hx Hi.
+  rewrite lookup_empty in Hi.
+  apply is_Some_None in Hi.
+  contradiction.
+Qed.
+
+Definition env_compatible `{heapG Σ} Γ1 Γ2 := (∀ vs, env_ltyped (Γ1 ∪ Γ2) vs -∗ env_ltyped Γ1 (restrict Γ1 vs) ∗ env_ltyped Γ2 (restrict Γ2 vs))%I.
+
+Lemma env_compatible_empty `{heapG Σ}:
+  env_compatible ∅ ∅.
+Proof.
+  iStartProof.
+  iIntros (vs) "HΓ".
+  iSplitL; rewrite restrict_empty; by iApply big_sepM2_empty.
+Qed.
 
 (* To unfold a recursive type, we need to take a step. We thus define the
 unfold operator to be the identity function. *)
