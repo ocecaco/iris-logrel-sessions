@@ -106,32 +106,6 @@ Notation "Γ ⊨ e : A" := (ltyped Γ e A)
 (* Context combining *)
 Definition env_compatible `{heapG Σ} Γ1 Γ2 := (∀ vs, env_ltyped (Γ1 ∪ Γ2) vs -∗ env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)%I.
 
-(* Definition test_ty_env `{heapG Σ} : gmap string (lty Σ) := {["x" := (ref ())%lty]}. *)
-(* Definition test_val_env (l : loc) : gmap string val := {["x" := #l]}. *)
-
-(* Lemma union_idemp {A} (Γ : gmap string A): Γ ∪ Γ = Γ. *)
-(* Proof. *)
-(*   unfold union. *)
-(*   unfold map_union. *)
-(*   apply union_with_idemp. *)
-(*   by intros i x Hlookup. *)
-(* Qed. *)
-
-(* (* big_sepM2_singleton *) *)
-
-(* Example test_incompat `{heapG Σ} (l : loc) : *)
-(*   (l ↦ #() -∗ env_compatible test_ty_env test_ty_env -∗ False)%I. *)
-(* Proof. *)
-(*   iIntros "Hl Hcompat". *)
-(*   iSpecialize ("Hcompat" $! (test_val_env l)). *)
-(*   rewrite union_idemp. *)
-(*   rewrite /env_ltyped /big_sepM2 map_zip_with_singleton big_sepM_singleton. simpl. *)
-(*   assert (Hlookupty: test_ty_env !! "x" = Some (ref ())%lty). *)
-(*   { rewrite /test_ty_env. by apply lookup_singleton_Some. } *)
-(*   assert (Hlookupval: test_val_env l !! "x" = Some #l). *)
-(*   { rewrite /test_val_env. by apply lookup_singleton_Some. } *)
-(*   . *)
-
 (* To unfold a recursive type, we need to take a step. We thus define the
 unfold operator to be the identity function. *)
 Definition rec_unfold : val := λ: "x", "x".
