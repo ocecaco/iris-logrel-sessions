@@ -105,7 +105,6 @@ Notation "Γ ⊨ e : A" := (ltyped Γ e A)
 
 (* Context compatibility *)
 
-(* TODO*)
 Definition restrict `{heapG Σ} (Γ : gmap string (lty Σ)) (vs : gmap string val) : gmap string val := filter (λ (kv : string * val), is_Some (Γ !! fst kv)) vs.
 
 Lemma restrict_empty `{heapG Σ} vs:
@@ -118,10 +117,11 @@ Proof.
   right.
   intros x Hx Hi.
   rewrite lookup_empty in Hi.
-  apply is_Some_None in Hi.
-  contradiction.
+  by apply is_Some_None in Hi.
 Qed.
 
+(* TODO: Do we need to enforce that Γ1 and Γ2 agree on the keys that
+they both contain? *)
 Definition env_compatible `{heapG Σ} Γ1 Γ2 := (∀ vs, env_ltyped (Γ1 ∪ Γ2) vs -∗ env_ltyped Γ1 (restrict Γ1 vs) ∗ env_ltyped Γ2 (restrict Γ2 vs))%I.
 
 Lemma env_compatible_empty `{heapG Σ}:
@@ -131,6 +131,20 @@ Proof.
   iIntros (vs) "HΓ".
   iSplitL; rewrite restrict_empty; by iApply big_sepM2_empty.
 Qed.
+
+Lemma env_compatible_disjoint `{heapG Σ} Γ1 Γ2:
+  ⌜Γ1 ##ₘ Γ2⌝ -∗ env_compatible Γ1 Γ2.
+Proof.
+Admitted.
+
+Lemma env_compatible_left `{heapG Σ} (Γ1 : gmap string (lty Σ)) (Γ2 : gmap string (lty Σ)) (x : string) (A : lty Σ):
+  ⌜x ∉ dom (gset string) Γ1⌝ -∗ ⌜x ∉ dom (gset string) Γ2⌝ -∗ env_compatible Γ1 Γ2 -∗ env_compatible (binder_insert x A Γ1) Γ2.
+Proof.
+  iIntros "#Hdom1 #Hdom2 Hcompat" (vs) "HΓ".
+  iSpecialize ("Hcompat" $! vs).
+  rewrite /binder_insert //.
+  rewrite insert_union_singleton_l. Search "union".
+Admitted.
 
 (* To unfold a recursive type, we need to take a step. We thus define the
 unfold operator to be the identity function. *)
