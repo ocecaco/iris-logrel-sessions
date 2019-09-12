@@ -308,6 +308,18 @@ Section types_properties.
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
 
+  Lemma ltyped_pair Γ Γ1 Γ2 e1 e2 A1 A2 :
+    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : A1) -∗ (Γ2 ⊨ e2 : A2) -∗ Γ ⊨ (e1,e2) : A1 * A2.
+  Proof.
+    iIntros "Hsplit H1 H2" (vs) "HΓ /=".
+    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
+    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
+    wp_pures. iExists w1, w2. by iFrame.
+  Qed.
+
+  (* TODO: Pair splitting *)
+
  Lemma ltyped_alloc Γ e A : (Γ ⊨ e : A) -∗ Γ ⊨ ref e : ref A.
   Proof.
     iIntros "H" (vs) "HΓ /=".
@@ -317,23 +329,62 @@ Section types_properties.
     iExists w. iFrame.
   Qed.
 
-  Lemma ltyped_load Γ e A : (Γ ⊨ e : ref A) -∗ Γ ⊨ ! e : A.
-  Proof.
-    iIntros "H" (vs) "HΓ /=".
-    wp_bind (subst_map _ e). iApply (wp_wand with "(H [HΓ //])"). iIntros (w).
-    iIntros "Href". iDestruct "Href" as (l -> w) "[Hl HA]".
-    wp_load. iFrame.
-  Qed.
+  (* Lemma ltyped_load Γ e A : (Γ ⊨ e : ref A) -∗ Γ ⊨ ! e : A. *)
+  (* Proof. *)
+  (*   iIntros "H" (vs) "HΓ /=". *)
+  (*   wp_bind (subst_map _ e). iApply (wp_wand with "(H [HΓ //])"). iIntros (w). *)
+  (*   iIntros "Href". iDestruct "Href" as (l -> w) "[Hl HA]". *)
+  (*   wp_load. iFrame. *)
+  (* Qed. *)
 
-  Lemma ltyped_store Γ Γ1 Γ2 e1 e2 A :
-    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : A) -∗ Γ ⊨ (e1 <- e2) : ().
+  (* Lemma ltyped_store Γ Γ1 Γ2 e1 e2 A : *)
+  (*   env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : A) -∗ Γ ⊨ (e1 <- e2) : (). *)
+  (* Proof. *)
+  (*   iIntros "Hsplit H1 H2" (vs) "HΓ /=". *)
+  (*   iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]". *)
+  (*   wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA". *)
+  (*   wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1). *)
+  (*   iIntros "Href". iDestruct "Href" as (l -> w3) "[Hl Hw3]". *)
+  (*   wp_store. done. *)
+  (* Qed. *)
+  Definition swap : expr := λ: "e1" "e2", let: "tmp" := ! "e1" in "e1" <- "e2" ;; ("tmp", "e1").
+
+  (* TODO: This proof is a bit long and tedious *)
+  Lemma ltyped_swap Γ Γ1 Γ2 e1 e2 A B:
+     env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : B) -∗ Γ ⊨ (swap e1 e2) : (A * ref B)%lty.
   Proof.
     iIntros "Hsplit H1 H2" (vs) "HΓ /=".
     iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA".
-    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1).
-    iIntros "Href". iDestruct "Href" as (l -> w3) "[Hl Hw3]".
-    wp_store. done.
+    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
+    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
+    wp_pures.
+    iDestruct "HA1" as (l -> v) "[Hl HA1]".
+
+    assert (Hlookup1: delete "e2" (delete "e1" vs) !! "e1" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+
+    wp_load. wp_pures.
+
+    assert (Hlookup2: delete "tmp" (delete "e2" (delete "e1" vs)) !! "e1" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup2. simpl.
+
+    assert (Hlookup3: delete "tmp" (delete "e2" (delete "e1" vs)) !! "e2" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup3. simpl.
+
+    wp_store.
+
+    assert (Hlookup4: delete "tmp" (delete "e2" (delete "e1" vs)) !! "tmp" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup4. simpl.
+
+    wp_pures.
+
+    iExists v. iExists #l. iFrame. iSplitR; try done.
+    iExists l. iSplitR; try done.
+    iExists w2. by iFrame.
   Qed.
 
 End types_properties.
