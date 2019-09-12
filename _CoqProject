@@ -8,4 +8,3 @@
 
 theories/logrel_heaplang/ltyping.v
 theories/logrel_heaplang/ltyping_safety.v
-theories/logrel_heaplang/lib/symbol_adt.v
