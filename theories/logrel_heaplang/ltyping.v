@@ -49,6 +49,14 @@ Class LTyUnOp `{heapG Σ} (op : un_op) (A B : lty Σ) :=
 Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
   lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∗ B w.
 
+(* Copy types *)
+Class LTyCopy `{heapG Σ} (A : lty Σ) :=
+  lty_copy v : Persistent (A v).
+
+(* Copy types are persistent at any value *)
+Global Instance lty_copy_pers `{heapG Σ} `(!LTyCopy A) (v : val) : Persistent (A v).
+Proof. apply lty_copy. Qed.
+
 (* The type formers *)
 Section types.
   Context `{heapG Σ}.
@@ -96,55 +104,63 @@ Notation "'ref' A" := (lty_ref A) : lty_scope.
 (* The semantic typing judgment *)
 Definition env_ltyped `{heapG Σ} (Γ : gmap string (lty Σ))
     (vs : gmap string val) : iProp Σ :=
-  ([∗ map] i ↦ A;v ∈ Γ; vs, lty_car A v)%I.
+  ([∗ map] i ↦ A ∈ Γ, ∃ v, ⌜vs !! i = Some v⌝ ∗ lty_car A v)%I.
+
 Definition ltyped  `{heapG Σ}
     (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
   (at level 100, e at next level, A at level 200).
 
-(* Context compatibility *)
+(* Context splitting *)
+(* TODO: Should this be an iProp or just a Prop? Is it ever the case that splitting an environment is only allowed when you have some resource? *)
+Definition env_split `{heapG Σ} Γ Γ1 Γ2 : iProp Σ := (∀ vs, env_ltyped Γ vs -∗ env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)%I.
 
-Definition restrict `{heapG Σ} (Γ : gmap string (lty Σ)) (vs : gmap string val) : gmap string val := filter (λ (kv : string * val), is_Some (Γ !! fst kv)) vs.
-
-Lemma restrict_empty `{heapG Σ} vs:
-  restrict ∅ vs = ∅.
+Lemma env_split_empty `{heapG Σ}:
+  env_split ∅ ∅ ∅.
 Proof.
-  rewrite /restrict.
-  apply map_empty.
-  intros i.
-  rewrite map_filter_lookup_None.
-  right.
-  intros x Hx Hi.
-  rewrite lookup_empty in Hi.
-  by apply is_Some_None in Hi.
+  iIntros (vs) "H".
+  iSplitL; by rewrite /env_ltyped big_sepM_empty.
 Qed.
 
-(* TODO: Do we need to enforce that Γ1 and Γ2 agree on the keys that
-they both contain? *)
-Definition env_compatible `{heapG Σ} Γ1 Γ2 := (∀ vs, env_ltyped (Γ1 ∪ Γ2) vs -∗ env_ltyped Γ1 (restrict Γ1 vs) ∗ env_ltyped Γ2 (restrict Γ2 vs))%I.
-
-Lemma env_compatible_empty `{heapG Σ}:
-  env_compatible ∅ ∅.
+Lemma env_split_left `{heapG Σ} Γ Γ1 Γ2 x A:
+  Γ !! x = None → env_split Γ Γ1 Γ2 -∗ env_split (<[x := A]> Γ) (<[x := A]> Γ1) Γ2.
 Proof.
-  iStartProof.
-  iIntros (vs) "HΓ".
-  iSplitL; rewrite restrict_empty; by iApply big_sepM2_empty.
+  intros HΓx.
+  iIntros "Hsplit" (vs) "HΓ".
+  iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; try assumption.
+  iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]". iFrame.
+  iApply (big_sepM_insert_2 with "[Hv]"); simpl; iFrame.
 Qed.
 
-Lemma env_compatible_disjoint `{heapG Σ} Γ1 Γ2:
-  ⌜Γ1 ##ₘ Γ2⌝ -∗ env_compatible Γ1 Γ2.
+Lemma env_split_comm `{heapG Σ} Γ Γ1 Γ2:
+  env_split Γ Γ1 Γ2 -∗ env_split Γ Γ2 Γ1.
 Proof.
-Admitted.
+  iIntros "Hsplit" (vs) "HΓ".
+  iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+  iFrame.
+Qed.
 
-Lemma env_compatible_left `{heapG Σ} (Γ1 : gmap string (lty Σ)) (Γ2 : gmap string (lty Σ)) (x : string) (A : lty Σ):
-  ⌜x ∉ dom (gset string) Γ1⌝ -∗ ⌜x ∉ dom (gset string) Γ2⌝ -∗ env_compatible Γ1 Γ2 -∗ env_compatible (binder_insert x A Γ1) Γ2.
+Lemma env_split_right `{heapG Σ} Γ Γ1 Γ2 x A:
+  Γ !! x = None → env_split Γ Γ1 Γ2 -∗ env_split (<[x := A]> Γ) Γ1 (<[x := A]> Γ2).
 Proof.
-  iIntros "#Hdom1 #Hdom2 Hcompat" (vs) "HΓ".
-  iSpecialize ("Hcompat" $! vs).
-  rewrite /binder_insert //.
-  rewrite insert_union_singleton_l. Search "union".
-Admitted.
+  intros HΓx.
+  iIntros "Hsplit".
+  iApply env_split_comm.
+  iApply env_split_left; try assumption.
+  by iApply env_split_comm.
+Qed.
+
+Lemma env_split_copy `{heapG Σ} Γ Γ1 Γ2 x A:
+  Γ !! x = None → LTyCopy A → env_split Γ Γ1 Γ2 -∗ env_split (<[x := A]> Γ) (<[x := A]> Γ1) (<[x := A]> Γ2).
+Proof.
+  intros Hcopy HΓx. iIntros "Hsplit" (vs) "HΓ".
+  iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; try assumption.
+  (* This next line is possible because of the Persistent instance *)
+  iDestruct "Hv" as (v ?) "#HAv".
+  iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+  iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; iFrame; eauto.
+Qed.
 
 (* To unfold a recursive type, we need to take a step. We thus define the
 unfold operator to be the identity function. *)
@@ -180,15 +196,28 @@ Section types_properties.
     env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∗ A v.
   Proof.
     iIntros (HΓx) "HΓ".
-    iDestruct (big_sepM2_lookup_1 with "HΓ") as (v ?) "H"; eauto.
+    iPoseProof (big_sepM_lookup with "HΓ") as "H"; eauto.
   Qed.
+
+  (* TODO: This proof is a bit ugly and unwieldy *)
   Lemma env_ltyped_insert Γ vs x A v :
-    A v -∗ env_ltyped Γ vs -∗
-    env_ltyped (binder_insert x A Γ) (binder_insert x v vs).
+    Γ !! x = None → A v -∗ env_ltyped Γ vs -∗
+    env_ltyped (<[x := A]> Γ) (<[x := v]> vs).
   Proof.
-    destruct x as [|x]=> /=; first by auto.
-    iIntros "HA HΓ".
-    by iApply (big_sepM2_insert_2 with "[HA] HΓ").
+    intros HΓx. iIntros "HA HΓ".
+    iApply (big_sepM_insert with "[HA HΓ]"); try assumption.
+    simpl. iSplitL "HA".
+    - iExists v. iFrame. iPureIntro. apply lookup_insert.
+    - iApply (big_sepM_mono with "HΓ"). simpl.
+      iIntros (x' A' Hx') "HA'".
+      iDestruct "HA'" as (v' Hv') "HA'".
+      iExists v'. iFrame.
+      iPureIntro.
+      rewrite -Hv'.
+      apply lookup_insert_ne.
+      intros Heq. rewrite Heq in HΓx.
+      rewrite HΓx in Hx'.
+      inversion Hx'.
   Qed.
 
   (* Unboxed types *)
@@ -250,8 +279,8 @@ Section types_properties.
   Lemma ltyped_nat Γ (n : Z) : Γ ⊨ #n : lty_int.
   Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
 
-  Lemma ltyped_app Γ1 Γ2 e1 e2 A1 A2 :
-    env_compatible Γ1 Γ2 -∗ (Γ1 ⊨ e1 : A1 → A2) -∗ (Γ2 ⊨ e2 : A1) -∗ Γ1 ∪ Γ2 ⊨ e1 e2 : A2.
+  Lemma ltyped_app Γ Γ1 Γ2 e1 e2 A1 A2 :
+    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : A1 → A2) -∗ (Γ2 ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
   Proof.
     iIntros "Hcompat H1 H2" (vs) "HΓ /=".
     iSpecialize ("Hcompat" with "HΓ").
@@ -262,14 +291,15 @@ Section types_properties.
     iIntros (f) "Hf". iApply ("Hf" $! v with "HA1").
   Qed.
 
-  Lemma ltyped_lam Γ x e A1 A2 :
-    (binder_insert x A1 Γ ⊨ e : A2) -∗
+  Lemma ltyped_lam Γ (x : string) e A1 A2 :
+    Γ !! x = None →
+    ((<[x := A1]> Γ) ⊨ e : A2) -∗
     Γ ⊨ (λ: x, e) : A1 → A2.
   Proof.
-    iIntros "H" (vs) "HΓ /=". wp_pures.
+    intros HΓx. iIntros "H" (vs) "HΓ /=". wp_pures.
     iIntros (v) "HA1". wp_pures.
-    iSpecialize ("H" $! (binder_insert x v vs) with "[HΓ HA1]").
-    { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
+    iSpecialize ("H" $! (<[x := v]> vs) with "[HΓ HA1]").
+    { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). assumption. }
     (* TODO: What does the question mark mean here? *)
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
