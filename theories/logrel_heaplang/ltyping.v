@@ -300,8 +300,7 @@ Section types_properties.
     iIntros (v) "HA1". wp_pures.
     iSpecialize ("H" $! (<[x := v]> vs) with "[HΓ HA1]").
     { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). assumption. }
-    (* TODO: What does the question mark mean here? *)
-    destruct x as [|x]; rewrite /= -?subst_map_insert //.
+    rewrite /= -?subst_map_insert //.
   Qed.
 
 End types_properties.
