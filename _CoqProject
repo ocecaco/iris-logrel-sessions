@@ -6,5 +6,5 @@
 # change_no_check does not exist yet in 8.9.
 -arg -w -arg -convert_concl_no_check
 
-theories/logrel_heaplang/ltyping.v
-theories/logrel_heaplang/ltyping_safety.v
+theories/logrel_heaplang_sessions/ltyping.v
+theories/logrel_heaplang_sessions/ltyping_safety.v

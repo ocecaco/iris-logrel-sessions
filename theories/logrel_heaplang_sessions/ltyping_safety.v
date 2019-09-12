@@ -1,4 +1,4 @@
-From iris_examples.logrel_heaplang Require Export ltyping.
+From iris_examples.logrel_heaplang_sessions Require Export ltyping.
 From iris.heap_lang Require Import adequacy.
 From iris.heap_lang Require Import proofmode.
 
