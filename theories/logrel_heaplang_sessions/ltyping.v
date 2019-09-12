@@ -201,8 +201,9 @@ Section types_properties.
 
   Lemma env_ltyped_insert Γ vs x A v :
     A v -∗ env_ltyped Γ vs -∗
-    env_ltyped (<[x := A]> Γ) (<[x := v]> vs).
+    env_ltyped (binder_insert x A Γ) (binder_insert x v vs).
   Proof.
+    destruct x as [|x]=> /=; first by auto.
     iIntros "HA HΓ".
     rewrite /env_ltyped.
     set Γ' := <[x := A]> Γ.
@@ -296,15 +297,15 @@ Section types_properties.
     iIntros (f) "Hf". iApply ("Hf" $! v with "HA1").
   Qed.
 
-  Lemma ltyped_lam Γ (x : string) e A1 A2 :
-    ((<[x := A1]> Γ) ⊨ e : A2) -∗
+  Lemma ltyped_lam Γ x e A1 A2 :
+    (binder_insert x A1 Γ ⊨ e : A2) -∗
     Γ ⊨ (λ: x, e) : A1 → A2.
   Proof.
     iIntros "H" (vs) "HΓ /=". wp_pures.
     iIntros (v) "HA1". wp_pures.
-    iSpecialize ("H" $! (<[x := v]> vs) with "[HΓ HA1]").
+    iSpecialize ("H" $! (binder_insert x v vs) with "[HΓ HA1]").
     { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
-    rewrite /= -?subst_map_insert //.
+    destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
 
 End types_properties.
