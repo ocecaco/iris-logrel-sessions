@@ -308,4 +308,32 @@ Section types_properties.
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
 
+ Lemma ltyped_alloc Γ e A : (Γ ⊨ e : A) -∗ Γ ⊨ ref e : ref A.
+  Proof.
+    iIntros "H" (vs) "HΓ /=".
+    wp_bind (subst_map _ e). iApply (wp_wand with "(H [HΓ //])"). iIntros (w) "HA".
+    wp_alloc l as "Hl".
+    iExists l; iSplitR; try done.
+    iExists w. iFrame.
+  Qed.
+
+  Lemma ltyped_load Γ e A : (Γ ⊨ e : ref A) -∗ Γ ⊨ ! e : A.
+  Proof.
+    iIntros "H" (vs) "HΓ /=".
+    wp_bind (subst_map _ e). iApply (wp_wand with "(H [HΓ //])"). iIntros (w).
+    iIntros "Href". iDestruct "Href" as (l -> w) "[Hl HA]".
+    wp_load. iFrame.
+  Qed.
+
+  Lemma ltyped_store Γ Γ1 Γ2 e1 e2 A :
+    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : A) -∗ Γ ⊨ (e1 <- e2) : ().
+  Proof.
+    iIntros "Hsplit H1 H2" (vs) "HΓ /=".
+    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA".
+    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1).
+    iIntros "Href". iDestruct "Href" as (l -> w3) "[Hl Hw3]".
+    wp_store. done.
+  Qed.
+
 End types_properties.
