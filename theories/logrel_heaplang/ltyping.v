@@ -199,25 +199,30 @@ Section types_properties.
     iPoseProof (big_sepM_lookup with "HΓ") as "H"; eauto.
   Qed.
 
-  (* TODO: This proof is a bit ugly and unwieldy *)
   Lemma env_ltyped_insert Γ vs x A v :
-    Γ !! x = None → A v -∗ env_ltyped Γ vs -∗
+    A v -∗ env_ltyped Γ vs -∗
     env_ltyped (<[x := A]> Γ) (<[x := v]> vs).
   Proof.
-    intros HΓx. iIntros "HA HΓ".
-    iApply (big_sepM_insert with "[HA HΓ]"); try assumption.
-    simpl. iSplitL "HA".
+    iIntros "HA HΓ".
+    rewrite /env_ltyped.
+    set Γ' := <[x := A]> Γ.
+    assert (Hx: Γ' !! x = Some A).
+    { apply lookup_insert. }
+    iApply (big_sepM_delete _ _ _ _ Hx).
+    iSplitL "HA".
     - iExists v. iFrame. iPureIntro. apply lookup_insert.
-    - iApply (big_sepM_mono with "HΓ"). simpl.
-      iIntros (x' A' Hx') "HA'".
-      iDestruct "HA'" as (v' Hv') "HA'".
-      iExists v'. iFrame.
-      iPureIntro.
-      rewrite -Hv'.
+    - assert (Hsub: delete x Γ' ⊆ Γ).
+      { rewrite delete_insert_delete. apply delete_subseteq. }
+      iPoseProof (big_sepM_subseteq _ _ _ Hsub with "HΓ") as "HΓ".
+      iApply (big_sepM_mono with "HΓ"). simpl.
+      iIntros (y B Hy) "HB".
+      iDestruct "HB" as (w Hw) "HB".
+      iExists w. iFrame. iPureIntro.
+      apply lookup_delete_Some in Hy.
+      destruct Hy as [Hxy _].
+      rewrite -Hw.
       apply lookup_insert_ne.
-      intros Heq. rewrite Heq in HΓx.
-      rewrite HΓx in Hx'.
-      inversion Hx'.
+      assumption.
   Qed.
 
   (* Unboxed types *)
@@ -292,14 +297,13 @@ Section types_properties.
   Qed.
 
   Lemma ltyped_lam Γ (x : string) e A1 A2 :
-    Γ !! x = None →
     ((<[x := A1]> Γ) ⊨ e : A2) -∗
     Γ ⊨ (λ: x, e) : A1 → A2.
   Proof.
-    intros HΓx. iIntros "H" (vs) "HΓ /=". wp_pures.
+    iIntros "H" (vs) "HΓ /=". wp_pures.
     iIntros (v) "HA1". wp_pures.
     iSpecialize ("H" $! (<[x := v]> vs) with "[HΓ HA1]").
-    { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). assumption. }
+    { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
     rewrite /= -?subst_map_insert //.
   Qed.
 
