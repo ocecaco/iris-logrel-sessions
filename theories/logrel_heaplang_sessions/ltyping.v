@@ -1,6 +1,7 @@
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
+From iris.heap_lang.lib Require Import lock.
 
 (* The domain of semantic types: persistent Iris predicates over values *)
 Record lty Σ := Lty {
@@ -318,7 +319,33 @@ Section types_properties.
     wp_pures. iExists w1, w2. by iFrame.
   Qed.
 
-  (* TODO: Pair splitting *)
+  Definition split : expr := λ: "pair" "f", "f" (Fst "pair") (Snd "pair").
+  Lemma ltyped_split Γ Γ1 Γ2 e f A1 A2 B:
+    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e : A1 * A2) -∗ (Γ2 ⊨ f : A1 → A2 → B) -∗ Γ ⊨ split e f : B.
+  Proof.
+    iIntros "Hsplit H1 H2" (vs) "HΓ /=".
+    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
+    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
+    wp_pures.
+
+    assert (Hlookup1: delete "f" (delete "pair" vs) !! "f" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+
+    assert (Hlookup2: delete "f" (delete "pair" vs) !! "pair" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup2. simpl.
+
+    iDestruct "HA1" as (x y ->) "[HAx HAy]".
+    wp_pures.
+    iSpecialize ("HA2" with "[HAx //]").
+
+    wp_bind (w2 _).
+    wp_apply (wp_wand with "HA2").
+    iIntros (v) "Hv".
+    by iSpecialize ("Hv" with "HAy").
+  Qed.
 
  Lemma ltyped_alloc Γ e A : (Γ ⊨ e : A) -∗ Γ ⊨ ref e : ref A.
   Proof.
@@ -347,9 +374,11 @@ Section types_properties.
   (*   iIntros "Href". iDestruct "Href" as (l -> w3) "[Hl Hw3]". *)
   (*   wp_store. done. *)
   (* Qed. *)
+
   Definition swap : expr := λ: "e1" "e2", let: "tmp" := ! "e1" in "e1" <- "e2" ;; ("tmp", "e1").
 
   (* TODO: This proof is a bit long and tedious *)
+  (* This operation is mostly based on the array operations in the chapter on substructural type systems by David Walker in ATTAPL *)
   Lemma ltyped_swap Γ Γ1 Γ2 e1 e2 A B:
      env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : B) -∗ Γ ⊨ (swap e1 e2) : (A * ref B)%lty.
   Proof.
@@ -386,5 +415,23 @@ Section types_properties.
     iExists l. iSplitR; try done.
     iExists w2. by iFrame.
   Qed.
+
+  Definition clone : expr := λ: "x", ("x", "x").
+  Lemma ltyped_clone Γ e A:
+     (Γ ⊨ e : A) -∗ Γ ⊨ (clone e) : A * A.
+  Proof.
+    iIntros "He" (vs) "HΓ /=".
+    wp_bind (subst_map _ _).
+    iPoseProof ("He" with "HΓ") as "He".
+    wp_apply (wp_wand with "He").
+    iIntros (v) "HA".
+    wp_pures.
+
+    assert (Hlookup1: delete "x" vs !! "x" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+    wp_pures.
+    (* This doesn't work, luckily *)
+  Admitted.
 
 End types_properties.
