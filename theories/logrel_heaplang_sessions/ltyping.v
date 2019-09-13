@@ -1,7 +1,7 @@
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
-From iris.heap_lang.lib Require Import lock.
+From iris.heap_lang.lib Require Import spin_lock.
 
 (* The domain of semantic types: persistent Iris predicates over values *)
 Record lty Σ := Lty {
@@ -60,7 +60,7 @@ Proof. apply lty_copy. Qed.
 
 (* The type formers *)
 Section types.
-  Context `{heapG Σ}.
+  Context `{heapG Σ, lockG Σ}.
 
   Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝%I).
   Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
@@ -89,6 +89,12 @@ Section types.
   Definition tyN := nroot .@ "ty".
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ l : loc, ⌜w = #l⌝ ∗ (∃ v, l ↦ v ∗ A v))%I.
+
+  Definition lty_mutex (A : lty Σ) : lty Σ := Lty (λ w,
+    ∃ (N : namespace) (γ : gname) (lk inner : val), ⌜ w = PairV lk inner ⌝ ∗ is_lock N γ lk (A inner))%I.
+
+  Definition lty_openmutex (A : lty Σ) : lty Σ := Lty (λ lk,
+    ∃ (N : namespace) (γ : gname) (lk inner : val), is_lock N γ lk (A inner) ∗ locked γ)%I.
 End types.
 
 (* Nice notations *)
@@ -100,6 +106,10 @@ Notation "∀ A1 .. An , C" :=
   (lty_forall (λ A1, .. (lty_forall (λ An, C%lty)) ..)) : lty_scope.
 Notation "∃ A1 .. An , C" :=
   (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
+(* TODO: Why doesn't Coq like this without the level and why does it
+say something about locked now being a keyword? *)
+Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
+Notation "'openmutex' A" := (lty_openmutex A) (at level 10) : lty_scope.
 Notation "'ref' A" := (lty_ref A) : lty_scope.
 
 (* The semantic typing judgment *)
@@ -168,7 +178,7 @@ unfold operator to be the identity function. *)
 Definition rec_unfold : val := λ: "x", "x".
 
 Section types_properties.
-  Context `{heapG Σ}.
+  Context `{lockG Σ, heapG Σ}.
   Implicit Types A B : lty Σ.
   Implicit Types C : lty Σ → lty Σ.
 
@@ -433,5 +443,60 @@ Section types_properties.
     wp_pures.
     (* This doesn't work, luckily *)
   Admitted.
+
+  Definition makemutex : expr := λ: "x", (newlock #(), "x").
+  Lemma ltyped_makemutex Γ e A:
+     (Γ ⊨ e : A) -∗ Γ ⊨ (makemutex e) : mutex A.
+  Proof.
+    iIntros "He" (vs) "HΓ //".
+    iPoseProof ("He" with "HΓ") as "He".
+    rewrite /makemutex. simpl.
+    wp_bind (subst_map _ _).
+    wp_apply (wp_wand with "He").
+    iIntros (v) "HA".
+    wp_pures.
+
+    assert (Hlookup1: delete "x" vs !! "x" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+
+    wp_bind (newlock _).
+    set (N := nroot .@ "makelock").
+    wp_apply (newlock_spec N with "HA").
+    iIntros (lk γ) "Hlock".
+
+    wp_pures.
+    iExists N. iExists γ. iExists lk. iExists v.
+    iFrame. done.
+  Qed.
+
+  Definition acquiremutex : expr := λ: "x", acquire (Fst "x");; "x".
+  Lemma ltyped_acquiremutex Γ e A:
+     (Γ ⊨ e : mutex A) -∗ Γ ⊨ (acquiremutex e) : (openmutex A * A).
+  Proof.
+    iIntros "He" (vs) "HΓ //".
+    iPoseProof ("He" with "HΓ") as "He".
+    rewrite /acquiremutex. simpl.
+    wp_bind (subst_map _ _).
+    wp_apply (wp_wand with "He").
+    iIntros (v) "HA".
+    iDestruct "HA" as (N γ lk inner ->) "#HA".
+
+    assert (Hlookup1: delete "x" vs !! "x" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+
+    wp_pures.
+    wp_bind (acquire _).
+    wp_apply (acquire_spec N with "HA").
+    iIntros "[Hopen Hinner]".
+
+    wp_pures.
+    iExists lk. iExists inner. iFrame.
+    iSplitR; try done.
+
+    rewrite /lty_openmutex.
+    iExists N. iExists γ. iExists lk. iExists inner. iFrame; try done.
+  Qed.
 
 End types_properties.
