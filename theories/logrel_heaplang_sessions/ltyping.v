@@ -93,8 +93,8 @@ Section types.
   Definition lty_mutex (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ (N : namespace) (γ : gname) (lk inner : val), ⌜ w = PairV lk inner ⌝ ∗ is_lock N γ lk (A inner))%I.
 
-  Definition lty_openmutex (A : lty Σ) : lty Σ := Lty (λ lk,
-    ∃ (N : namespace) (γ : gname) (lk inner : val), is_lock N γ lk (A inner) ∗ locked γ)%I.
+  Definition lty_mutexguard (A : lty Σ) : lty Σ := Lty (λ w,
+    ∃ (N : namespace) (γ : gname) (lk inner : val), ⌜ w = PairV lk inner ⌝ ∗ is_lock N γ lk (A inner) ∗ locked γ ∗ A inner)%I.
 End types.
 
 (* Nice notations *)
@@ -109,7 +109,7 @@ Notation "∃ A1 .. An , C" :=
 (* TODO: Why doesn't Coq like this without the level and why does it
 say something about locked now being a keyword? *)
 Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
-Notation "'openmutex' A" := (lty_openmutex A) (at level 10) : lty_scope.
+Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : lty_scope.
 Notation "'ref' A" := (lty_ref A) : lty_scope.
 
 (* The semantic typing judgment *)
@@ -472,7 +472,7 @@ Section types_properties.
 
   Definition acquiremutex : expr := λ: "x", acquire (Fst "x");; "x".
   Lemma ltyped_acquiremutex Γ e A:
-     (Γ ⊨ e : mutex A) -∗ Γ ⊨ (acquiremutex e) : (openmutex A * A).
+     (Γ ⊨ e : mutex A) -∗ Γ ⊨ (acquiremutex e) : (mutexguard A).
   Proof.
     iIntros "He" (vs) "HΓ //".
     iPoseProof ("He" with "HΓ") as "He".
@@ -492,11 +492,34 @@ Section types_properties.
     iIntros "[Hopen Hinner]".
 
     wp_pures.
-    iExists lk. iExists inner. iFrame.
-    iSplitR; try done.
+    iExists N. iExists γ. iExists lk. iExists inner. iSplitR; try done.
+    iFrame; try done.
+  Qed.
 
-    rewrite /lty_openmutex.
-    iExists N. iExists γ. iExists lk. iExists inner. iFrame; try done.
+  Definition releasemutex : expr := λ: "x", release (Fst "x");; "x".
+  Lemma ltyped_releasemutex Γ e A:
+     (Γ ⊨ e : mutexguard A) -∗ Γ ⊨ (releasemutex e) : mutex A.
+  Proof.
+    iIntros "He" (vs) "HΓ //".
+    iPoseProof ("He" with "HΓ") as "He".
+    rewrite /acquiremutex. simpl.
+    wp_bind (subst_map _ _).
+    wp_apply (wp_wand with "He").
+    iIntros (v) "HA".
+    iDestruct "HA" as (N γ lk inner ->) "[#Hlk [Hlocked Hinner]]".
+
+    assert (Hlookup1: delete "x" vs !! "x" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+
+    wp_pures.
+    wp_bind (release _).
+    wp_apply (release_spec N γ _ (A inner) with "[Hlk Hlocked Hinner]").
+    { iFrame. iApply "Hlk". }
+    iIntros "_".
+
+    wp_pures.
+    iExists N. iExists γ. iExists lk. iExists inner. iSplitR; try done.
   Qed.
 
 End types_properties.
