@@ -1,6 +1,10 @@
 # Created by https://www.gitignore.io/api/coq
 # Edit at https://www.gitignore.io/?templates=coq
 
+Makefile.coq
+Makefile.coq.conf
+.coqdeps.d
+
 ### Coq ###
 .*.aux
 *.a
