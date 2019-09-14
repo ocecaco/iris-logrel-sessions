@@ -90,11 +90,12 @@ Section types.
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ l : loc, ⌜w = #l⌝ ∗ (∃ v, l ↦ v ∗ A v))%I.
 
+  (* TODO: Maybe re-use the strong reference for this *)
   Definition lty_mutex (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (lk inner : val), ⌜ w = PairV lk inner ⌝ ∗ is_lock N γ lk (A inner))%I.
+    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner))%I.
 
   Definition lty_mutexguard (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (lk inner : val), ⌜ w = PairV lk inner ⌝ ∗ is_lock N γ lk (A inner) ∗ locked γ ∗ A inner)%I.
+    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner) ∗ locked γ ∗ (∃ inner, l ↦ inner ∗ A inner))%I.
 End types.
 
 (* Nice notations *)
@@ -444,13 +445,13 @@ Section types_properties.
     (* This doesn't work, luckily *)
   Admitted.
 
-  Definition makemutex : expr := λ: "x", (newlock #(), "x").
+  Definition makemutex : expr := λ: "x", (newlock #(), ref "x").
   Lemma ltyped_makemutex Γ e A:
      (Γ ⊨ e : A) -∗ Γ ⊨ (makemutex e) : mutex A.
   Proof.
     iIntros "He" (vs) "HΓ //".
     iPoseProof ("He" with "HΓ") as "He".
-    rewrite /makemutex. simpl.
+    rewrite /makemutex /=.
     wp_bind (subst_map _ _).
     wp_apply (wp_wand with "He").
     iIntros (v) "HA".
@@ -460,14 +461,16 @@ Section types_properties.
     { repeat (apply lookup_delete_None; try (by left) || right). }
     rewrite Hlookup1. simpl.
 
+    wp_alloc l as "Hl".
     wp_bind (newlock _).
     set (N := nroot .@ "makelock").
-    wp_apply (newlock_spec N with "HA").
+    iAssert (∃ inner, l ↦ inner ∗ A inner)%I with "[Hl HA]" as "Hlock".
+    { iExists v. iFrame. }
+    wp_apply (newlock_spec N with "Hlock").
     iIntros (lk γ) "Hlock".
 
     wp_pures.
-    iExists N. iExists γ. iExists lk. iExists v.
-    iFrame. done.
+    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
   Qed.
 
   Definition acquiremutex : expr := λ: "x", acquire (Fst "x");; "x".
@@ -476,11 +479,11 @@ Section types_properties.
   Proof.
     iIntros "He" (vs) "HΓ //".
     iPoseProof ("He" with "HΓ") as "He".
-    rewrite /acquiremutex. simpl.
+    rewrite /acquiremutex /=.
     wp_bind (subst_map _ _).
     wp_apply (wp_wand with "He").
     iIntros (v) "HA".
-    iDestruct "HA" as (N γ lk inner ->) "#HA".
+    iDestruct "HA" as (N γ l lk ->) "#HA".
 
     assert (Hlookup1: delete "x" vs !! "x" = None).
     { repeat (apply lookup_delete_None; try (by left) || right). }
@@ -489,10 +492,10 @@ Section types_properties.
     wp_pures.
     wp_bind (acquire _).
     wp_apply (acquire_spec N with "HA").
-    iIntros "[Hopen Hinner]".
+    iIntros "[Hlocked Hinner]".
 
     wp_pures.
-    iExists N. iExists γ. iExists lk. iExists inner. iSplitR; try done.
+    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
     iFrame; try done.
   Qed.
 
@@ -506,7 +509,7 @@ Section types_properties.
     wp_bind (subst_map _ _).
     wp_apply (wp_wand with "He").
     iIntros (v) "HA".
-    iDestruct "HA" as (N γ lk inner ->) "[#Hlk [Hlocked Hinner]]".
+    iDestruct "HA" as (N γ l lk ->) "[#Hlk [Hlocked Hinner]]".
 
     assert (Hlookup1: delete "x" vs !! "x" = None).
     { repeat (apply lookup_delete_None; try (by left) || right). }
@@ -514,12 +517,57 @@ Section types_properties.
 
     wp_pures.
     wp_bind (release _).
-    wp_apply (release_spec N γ _ (A inner) with "[Hlk Hlocked Hinner]").
+    wp_apply (release_spec N γ _ (∃ inner, l ↦ inner ∗ A inner)%I with "[Hlocked Hinner]").
     { iFrame. iApply "Hlk". }
     iIntros "_".
 
     wp_pures.
-    iExists N. iExists γ. iExists lk. iExists inner. iSplitR; try done.
+    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
+  Qed.
+
+  Definition swapmutex : expr := λ: "guard" "new", let: "old" := !(Snd "guard") in Snd "guard" <- "new";; ("old", "guard").
+  Lemma ltyped_swapmutex Γ Γ1 Γ2 e1 e2 A:
+     env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : mutexguard A) -∗ (Γ2 ⊨ e2 : A) -∗ Γ ⊨ (swapmutex e1 e2) : (A * mutexguard A)%lty.
+  Proof.
+    iIntros "Hsplit H1 H2" (vs) "HΓ //".
+    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    iPoseProof ("H1" with "HΓ1") as "H1".
+    iPoseProof ("H2" with "HΓ2") as "H2".
+    rewrite /swapmutex /=.
+    wp_bind (subst_map _ _).
+    wp_apply (wp_wand with "H2"). iIntros (w2) "HA2".
+    wp_bind (subst_map _ _).
+    wp_apply (wp_wand with "H1"). iIntros (w1) "HA1".
+    wp_pures.
+    iDestruct "HA1" as (N γ l lk ->) "[Hlk [Hlocked Hinner]]".
+    iDestruct "Hinner" as (inner) "[Hl Hinner]".
+
+    assert (Hlookup1: delete "new" (delete "guard" vs) !! "guard" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup1. simpl.
+
+    assert (Hlookup2: delete "old" (delete "new" (delete "guard" vs)) !! "guard" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup2. simpl.
+
+    assert (Hlookup3: delete "old" (delete "new" (delete "guard" vs)) !! "new" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup3. simpl.
+
+    assert (Hlookup4: delete "old" (delete "new" (delete "guard" vs)) !! "old" = None).
+    { repeat (apply lookup_delete_None; try (by left) || right). }
+    rewrite Hlookup4. simpl.
+
+    wp_pures.
+    wp_load.
+    wp_pures.
+    wp_store.
+    wp_pures.
+    iExists inner. iExists (lk, #l)%V. iSplitR; try done. iFrame.
+    iAssert (∃ inner, l ↦ inner ∗ A inner)%I with "[Hl HA2]" as "Hguard".
+    { iExists w2. iFrame. }
+    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
+    iFrame.
   Qed.
 
 End types_properties.
