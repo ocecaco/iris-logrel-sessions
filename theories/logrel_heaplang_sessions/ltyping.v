@@ -1,7 +1,13 @@
+From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
+
+Section ActrisExperiments.
+  Context `{heapG Σ, proto_chanG Σ}.
+  Definition foo : iProto Σ := (<!> v, MSG v {{ ⌜v = #3⌝ }} ; END)%proto.
+End ActrisExperiments.
 
 (* The domain of semantic types: persistent Iris predicates over values *)
 Record lty Σ := Lty {
@@ -56,7 +62,7 @@ Class LTyCopy `{heapG Σ} (A : lty Σ) :=
 
 (* The type formers *)
 Section types.
-  Context `{heapG Σ, lockG Σ}.
+  Context `{heapG Σ, lockG Σ, proto_chanG Σ}.
 
   Definition lty_any : lty Σ := Lty (λ w, True%I).
 
@@ -94,6 +100,18 @@ Section types.
 
   Definition lty_mutexguard (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ (N : namespace) (γ : gname) (l : loc) (lk : val) (v : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner) ∗ locked γ ∗ l ↦ v)%I.
+
+  (* TODO: Maybe don't use iProto directly, but wrap it in a
+  record. *)
+  Definition lty_chan (P : iProto Σ) : lty Σ := Lty (λ w, w ↣ P)%I.
+
+  Definition lproto_end : iProto Σ := END%proto.
+  Definition lproto_send (A : lty Σ) (P : iProto Σ) := (<!> v, MSG v {{ A v }}; P)%proto.
+  Definition lproto_recv (A : lty Σ) (P : iProto Σ) := (<?> v, MSG v {{ A v }}; P)%proto.
+
+  (* TODO: Prove lemmas about this, showing that it works properly
+  with respect to send and receive. *)
+  Definition lproto_dual (P : iProto Σ) : iProto Σ := iProto_dual P.
 End types.
 
 (* Nice notations *)
@@ -107,6 +125,7 @@ Notation "∃ A1 .. An , C" :=
   (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
 Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
 Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : lty_scope.
+Notation "'chan' A" := (lty_chan A) (at level 10) : lty_scope.
 Notation "'ref' A" := (lty_ref A) : lty_scope.
 Notation any := lty_any.
 
@@ -177,7 +196,7 @@ unfold operator to be the identity function. *)
 Definition rec_unfold : val := λ: "x", "x".
 
 Section types_properties.
-  Context `{lockG Σ, heapG Σ}.
+  Context `{lockG Σ, heapG Σ, proto_chanG Σ}.
   Implicit Types A B : lty Σ.
   Implicit Types C : lty Σ → lty Σ.
 
@@ -452,6 +471,64 @@ Section types_properties.
     iIntros "_".
     wp_pures.
     iExists N, γ, l, lk. iSplit=> //.
+  Qed.
+
+  (* TODO: Not sure why I need to put the let here, but otherwise I
+  can't get rid of the modality in the premises, becaues I don't have
+  a WP as my goal. *)
+  Definition chanalloc : val := λ: "u", let: "cc" := new_chan #() in "cc".
+  Lemma ltyped_chanalloc Γ P:
+    Γ ⊨ chanalloc : () → (chan P * chan (lproto_dual P)).
+  Proof.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (u) "Hu".
+    rewrite /lty_unit /lty_car.
+    iDestruct "Hu" as %Hu.
+    rewrite Hu.
+    rewrite /chanalloc.
+    wp_pures.
+    wp_apply (new_chan_proto_spec with "[//]").
+    iIntros (c1 c2) "Hp".
+    iPoseProof ("Hp" $! P) as "Hp".
+    iMod "Hp".
+    wp_pures.
+    iExists c1, c2. iSplit=> //.
+  Qed.
+
+  Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
+  Lemma ltyped_chansend Γ A P:
+    Γ ⊨ chansend : chan (lproto_send A P) → A → chan P.
+  Proof.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (c) "Hc".
+    rewrite /chansend. wp_pures.
+    iIntros (w) "Hw".
+    wp_pures.
+    rewrite /lty_chan /lty_car /=.
+    wp_apply (send_proto_spec with "Hc").
+    iExists w. simpl. iSplit=> //.
+    iFrame "Hw".
+    iModIntro.
+    iIntros "Hc".
+    wp_pures.
+    iFrame "Hc".
+  Qed.
+
+  Definition chanrecv : val := λ: "chan", (recv "chan", "chan").
+  Lemma ltyped_chanrecv Γ A P:
+    Γ ⊨ chanrecv : chan (lproto_recv A P) → A * chan P.
+  Proof.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (c) "Hc".
+    rewrite /lty_chan /lty_car.
+    rewrite /chanrecv. wp_pures.
+    wp_apply (recv_proto_spec with "Hc").
+    iIntros (v) "Hc HA". simpl. wp_pures.
+    iExists v, c. iSplit=> //.
+    iFrame "HA Hc".
   Qed.
 
 End types_properties.
