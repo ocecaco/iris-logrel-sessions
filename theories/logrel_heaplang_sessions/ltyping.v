@@ -52,15 +52,13 @@ Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
 
 (* Copy types *)
 Class LTyCopy `{heapG Σ} (A : lty Σ) :=
-  lty_copy v : Persistent (A v).
-
-(* Copy types are persistent at any value *)
-Global Instance lty_copy_pers `{heapG Σ} `(!LTyCopy A) (v : val) : Persistent (A v).
-Proof. apply lty_copy. Qed.
+  lty_copy v :> Persistent (A v).
 
 (* The type formers *)
 Section types.
   Context `{heapG Σ, lockG Σ}.
+
+  Definition lty_any : lty Σ := Lty (λ w, True%I).
 
   Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝%I).
   Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
@@ -88,14 +86,14 @@ Section types.
 
   Definition tyN := nroot .@ "ty".
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ l : loc, ⌜w = #l⌝ ∗ (∃ v, l ↦ v ∗ A v))%I.
+    ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ A v)%I.
 
   (* TODO: Maybe re-use the strong reference for this *)
   Definition lty_mutex (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ (N : namespace) (γ : gname) (l : loc) (lk : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner))%I.
 
   Definition lty_mutexguard (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner) ∗ locked γ ∗ (∃ inner, l ↦ inner ∗ A inner))%I.
+    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val) (v : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner) ∗ locked γ ∗ l ↦ v)%I.
 End types.
 
 (* Nice notations *)
@@ -107,11 +105,10 @@ Notation "∀ A1 .. An , C" :=
   (lty_forall (λ A1, .. (lty_forall (λ An, C%lty)) ..)) : lty_scope.
 Notation "∃ A1 .. An , C" :=
   (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
-(* TODO: Why doesn't Coq like this without the level and why does it
-say something about locked now being a keyword? *)
 Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
 Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : lty_scope.
 Notation "'ref' A" := (lty_ref A) : lty_scope.
+Notation any := lty_any.
 
 (* The semantic typing judgment *)
 Definition env_ltyped `{heapG Σ} (Γ : gmap string (lty Σ))
@@ -163,6 +160,7 @@ Proof.
   by iApply env_split_comm.
 Qed.
 
+(* TODO: Get rid of side condition that x does not appear in Γ *)
 Lemma env_split_copy `{heapG Σ} Γ Γ1 Γ2 x A:
   Γ !! x = None → LTyCopy A → env_split Γ Γ1 Γ2 -∗ env_split (<[x := A]> Γ) (<[x := A]> Γ1) (<[x := A]> Γ2).
 Proof.
@@ -246,7 +244,7 @@ Section types_properties.
   Global Instance lty_int_unboxed : LTyUnboxed lty_int.
   Proof. iIntros (v). by iDestruct 1 as (i) "->". Qed.
   Global Instance lty_ref_unboxed A : LTyUnboxed (ref A).
-  Proof. iIntros (v). by iDestruct 1 as (i ->) "?". Qed.
+  Proof. iIntros (v). by iDestruct 1 as (i w ->) "?". Qed.
 
   (* Operator typing *)
   Global Instance lty_bin_op_eq A : LTyUnboxed A → LTyBinOp EqOp A A lty_bool.
@@ -330,244 +328,130 @@ Section types_properties.
     wp_pures. iExists w1, w2. by iFrame.
   Qed.
 
-  Definition split : expr := λ: "pair" "f", "f" (Fst "pair") (Snd "pair").
-  Lemma ltyped_split Γ Γ1 Γ2 e f A1 A2 B:
-    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e : A1 * A2) -∗ (Γ2 ⊨ f : A1 → A2 → B) -∗ Γ ⊨ split e f : B.
+  Definition split : val := λ: "pair" "f", "f" (Fst "pair") (Snd "pair").
+  Lemma ltyped_split Γ A1 A2 B:
+    Γ ⊨ split : (A1 * A2 → (A1 → A2 → B) → B)%lty.
   Proof.
-    iIntros "Hsplit H1 H2" (vs) "HΓ /=".
-    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
-    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
-    wp_pures.
-
-    assert (Hlookup1: delete "f" (delete "pair" vs) !! "f" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-
-    assert (Hlookup2: delete "f" (delete "pair" vs) !! "pair" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup2. simpl.
-
-    iDestruct "HA1" as (x y ->) "[HAx HAy]".
-    wp_pures.
-    iSpecialize ("HA2" with "[HAx //]").
-
-    wp_bind (w2 _).
-    wp_apply (wp_wand with "HA2").
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
     iIntros (v) "Hv".
-    by iSpecialize ("Hv" with "HAy").
+    iDestruct "Hv" as (w1 w2 ->) "[Hw1 Hw2]".
+    rewrite /split. wp_pures.
+    iIntros (f) "Hf".
+    wp_pures.
+    iPoseProof ("Hf" with "Hw1") as "Hf".
+    wp_apply (wp_wand with "Hf").
+    iIntros (g) "Hg".
+    iPoseProof ("Hg" with "Hw2") as "Hg".
+    iFrame "Hg".
   Qed.
 
- Lemma ltyped_alloc Γ e A : (Γ ⊨ e : A) -∗ Γ ⊨ ref e : ref A.
+  Definition refalloc : val := λ: "init", ref "init".
+  Lemma ltyped_alloc Γ A : Γ ⊨ refalloc : (A → ref A)%lty.
   Proof.
-    iIntros "H" (vs) "HΓ /=".
-    wp_bind (subst_map _ e). iApply (wp_wand with "(H [HΓ //])"). iIntros (w) "HA".
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (v) "Hv". rewrite /refalloc. wp_pures.
     wp_alloc l as "Hl".
-    iExists l; iSplitR; try done.
-    iExists w. iFrame.
+    iExists l, v. iSplit=> //.
+    iFrame "Hv Hl".
   Qed.
 
-  (* Lemma ltyped_load Γ e A : (Γ ⊨ e : ref A) -∗ Γ ⊨ ! e : A. *)
-  (* Proof. *)
-  (*   iIntros "H" (vs) "HΓ /=". *)
-  (*   wp_bind (subst_map _ e). iApply (wp_wand with "(H [HΓ //])"). iIntros (w). *)
-  (*   iIntros "Href". iDestruct "Href" as (l -> w) "[Hl HA]". *)
-  (*   wp_load. iFrame. *)
-  (* Qed. *)
-
-  (* Lemma ltyped_store Γ Γ1 Γ2 e1 e2 A : *)
-  (*   env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : A) -∗ Γ ⊨ (e1 <- e2) : (). *)
-  (* Proof. *)
-  (*   iIntros "Hsplit H1 H2" (vs) "HΓ /=". *)
-  (*   iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]". *)
-  (*   wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA". *)
-  (*   wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1). *)
-  (*   iIntros "Href". iDestruct "Href" as (l -> w3) "[Hl Hw3]". *)
-  (*   wp_store. done. *)
-  (* Qed. *)
-
-  Definition swap : expr := λ: "e1" "e2", let: "tmp" := ! "e1" in "e1" <- "e2" ;; ("tmp", "e1").
-
-  (* TODO: This proof is a bit long and tedious *)
-  (* This operation is mostly based on the array operations in the chapter on substructural type systems by David Walker in ATTAPL *)
-  Lemma ltyped_swap Γ Γ1 Γ2 e1 e2 A B:
-     env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : ref A) -∗ (Γ2 ⊨ e2 : B) -∗ Γ ⊨ (swap e1 e2) : (A * ref B)%lty.
+  (* The intuition for the any is that the value is still there, but
+  it no longer holds any Iris resources. Just as in Rust, where a move
+  might turn into a memcpy, which leaves the original memory
+  unmodified, but moves the resources, in the sense that you can no
+  longer use the memory at the old location. *)
+  Definition refload : val := λ: "r", (!"r", "r").
+  Lemma ltyped_load Γ A : Γ ⊨ refload : (ref A → A * ref any)%lty.
   Proof.
-    iIntros "Hsplit H1 H2" (vs) "HΓ /=".
-    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
-    wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (v) "Hv".
+    iDestruct "Hv" as (l w ->) "[Hl Hw]".
+    rewrite /refload.
+    wp_pures. wp_load.
     wp_pures.
-    iDestruct "HA1" as (l -> v) "[Hl HA1]".
+    iExists w, #l. iSplit=> //.
+    iFrame "Hw".
+    iExists l, w. iSplit=> //.
+    iFrame "Hl".
+  Qed.
 
-    assert (Hlookup1: delete "e2" (delete "e1" vs) !! "e1" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-
-    wp_load. wp_pures.
-
-    assert (Hlookup2: delete "tmp" (delete "e2" (delete "e1" vs)) !! "e1" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup2. simpl.
-
-    assert (Hlookup3: delete "tmp" (delete "e2" (delete "e1" vs)) !! "e2" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup3. simpl.
-
+  Definition refstore : val := λ: "r" "new", "r" <- "new";; "r".
+  Lemma ltyped_store Γ A B:
+    Γ ⊨ refstore : (ref A → B → ref B)%lty.
+  Proof.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (v) "Hv".
+    iDestruct "Hv" as (l old ->) "[Hl Hold]".
+    rewrite /refstore. wp_pures.
+    iIntros (new) "Hnew". wp_pures.
     wp_store.
-
-    assert (Hlookup4: delete "tmp" (delete "e2" (delete "e1" vs)) !! "tmp" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup4. simpl.
-
-    wp_pures.
-
-    iExists v. iExists #l. iFrame. iSplitR; try done.
-    iExists l. iSplitR; try done.
-    iExists w2. by iFrame.
+    iExists l, new. iSplit=> //.
+    iFrame "Hl Hnew".
   Qed.
 
-  Definition clone : expr := λ: "x", ("x", "x").
-  Lemma ltyped_clone Γ e A:
-     (Γ ⊨ e : A) -∗ Γ ⊨ (clone e) : A * A.
+  Definition mutexalloc : val := λ: "x", (newlock #(), ref "x").
+  Lemma ltyped_mutexalloc Γ A:
+     Γ ⊨ mutexalloc : A → mutex A.
   Proof.
-    iIntros "He" (vs) "HΓ /=".
-    wp_bind (subst_map _ _).
-    iPoseProof ("He" with "HΓ") as "He".
-    wp_apply (wp_wand with "He").
-    iIntros (v) "HA".
-    wp_pures.
-
-    assert (Hlookup1: delete "x" vs !! "x" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-    wp_pures.
-    (* This doesn't work, luckily *)
-  Admitted.
-
-  Definition makemutex : expr := λ: "x", (newlock #(), ref "x").
-  Lemma ltyped_makemutex Γ e A:
-     (Γ ⊨ e : A) -∗ Γ ⊨ (makemutex e) : mutex A.
-  Proof.
-    iIntros "He" (vs) "HΓ //".
-    iPoseProof ("He" with "HΓ") as "He".
-    rewrite /makemutex /=.
-    wp_bind (subst_map _ _).
-    wp_apply (wp_wand with "He").
-    iIntros (v) "HA".
-    wp_pures.
-
-    assert (Hlookup1: delete "x" vs !! "x" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (v) "Hv".
+    rewrite /mutexalloc. wp_pures.
     wp_alloc l as "Hl".
     wp_bind (newlock _).
     set (N := nroot .@ "makelock").
-    iAssert (∃ inner, l ↦ inner ∗ A inner)%I with "[Hl HA]" as "Hlock".
-    { iExists v. iFrame. }
+    iAssert (∃ inner, l ↦ inner ∗ A inner)%I with "[Hl Hv]" as "Hlock".
+    { iExists v. iFrame "Hl Hv". }
     wp_apply (newlock_spec N with "Hlock").
     iIntros (lk γ) "Hlock".
-
     wp_pures.
-    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
+    iExists N, γ, l, lk. iSplit=> //.
   Qed.
 
-  Definition acquiremutex : expr := λ: "x", acquire (Fst "x");; "x".
-  Lemma ltyped_acquiremutex Γ e A:
-     (Γ ⊨ e : mutex A) -∗ Γ ⊨ (acquiremutex e) : (mutexguard A).
+  Definition mutexacquire : val := λ: "x", acquire (Fst "x");; (! (Snd "x"), "x").
+  Lemma ltyped_mutexacquire Γ A:
+     Γ ⊨ mutexacquire : mutex A → A * mutexguard A.
   Proof.
-    iIntros "He" (vs) "HΓ //".
-    iPoseProof ("He" with "HΓ") as "He".
-    rewrite /acquiremutex /=.
-    wp_bind (subst_map _ _).
-    wp_apply (wp_wand with "He").
-    iIntros (v) "HA".
-    iDestruct "HA" as (N γ l lk ->) "#HA".
-
-    assert (Hlookup1: delete "x" vs !! "x" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-
-    wp_pures.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (m) "Hm".
+    iDestruct "Hm" as (N γ l lk ->) "#Hlock".
+    rewrite /mutexacquire. wp_pures.
     wp_bind (acquire _).
-    wp_apply (acquire_spec N with "HA").
+    wp_apply (acquire_spec N with "Hlock").
     iIntros "[Hlocked Hinner]".
-
     wp_pures.
-    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
-    iFrame; try done.
+    iDestruct "Hinner" as (v) "[Hl HA]".
+    wp_load. wp_pures.
+    iExists v, (lk, #l)%V. iSplit=> //.
+    iFrame "HA".
+    iExists N, γ, l, lk, v. iSplit=> //.
+    iFrame "Hl Hlocked Hlock".
   Qed.
 
-  Definition releasemutex : expr := λ: "x", release (Fst "x");; "x".
-  Lemma ltyped_releasemutex Γ e A:
-     (Γ ⊨ e : mutexguard A) -∗ Γ ⊨ (releasemutex e) : mutex A.
+  Definition mutexrelease : val := λ: "inner" "guard", Snd "guard" <- "inner";; release (Fst "guard");; "guard".
+  Lemma ltyped_mutexrelease Γ A:
+     Γ ⊨ mutexrelease : A → mutexguard A → mutex A.
   Proof.
-    iIntros "He" (vs) "HΓ //".
-    iPoseProof ("He" with "HΓ") as "He".
-    rewrite /acquiremutex. simpl.
-    wp_bind (subst_map _ _).
-    wp_apply (wp_wand with "He").
-    iIntros (v) "HA".
-    iDestruct "HA" as (N γ l lk ->) "[#Hlk [Hlocked Hinner]]".
-
-    assert (Hlookup1: delete "x" vs !! "x" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-
-    wp_pures.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iIntros (w1) "Hw1".
+    rewrite /mutexrelease. wp_pures.
+    iIntros (w2) "Hw2".
+    iDestruct "Hw2" as (N γ l lk inner ->) "[#Hlock [Hlocked Hinner]]".
+    wp_pures. wp_store.
+    iAssert (∃ inner : val, l ↦ inner ∗ A inner)%I with "[Hinner Hw1]" as "Hinner".
+    { iExists w1. iFrame "Hinner Hw1". }
     wp_bind (release _).
     wp_apply (release_spec N γ _ (∃ inner, l ↦ inner ∗ A inner)%I with "[Hlocked Hinner]").
-    { iFrame. iApply "Hlk". }
+    { iFrame "Hlock Hlocked Hinner". }
     iIntros "_".
-
     wp_pures.
-    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
-  Qed.
-
-  Definition swapmutex : expr := λ: "guard" "new", let: "old" := !(Snd "guard") in Snd "guard" <- "new";; ("old", "guard").
-  Lemma ltyped_swapmutex Γ Γ1 Γ2 e1 e2 A:
-     env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : mutexguard A) -∗ (Γ2 ⊨ e2 : A) -∗ Γ ⊨ (swapmutex e1 e2) : (A * mutexguard A)%lty.
-  Proof.
-    iIntros "Hsplit H1 H2" (vs) "HΓ //".
-    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    iPoseProof ("H1" with "HΓ1") as "H1".
-    iPoseProof ("H2" with "HΓ2") as "H2".
-    rewrite /swapmutex /=.
-    wp_bind (subst_map _ _).
-    wp_apply (wp_wand with "H2"). iIntros (w2) "HA2".
-    wp_bind (subst_map _ _).
-    wp_apply (wp_wand with "H1"). iIntros (w1) "HA1".
-    wp_pures.
-    iDestruct "HA1" as (N γ l lk ->) "[Hlk [Hlocked Hinner]]".
-    iDestruct "Hinner" as (inner) "[Hl Hinner]".
-
-    assert (Hlookup1: delete "new" (delete "guard" vs) !! "guard" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup1. simpl.
-
-    assert (Hlookup2: delete "old" (delete "new" (delete "guard" vs)) !! "guard" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup2. simpl.
-
-    assert (Hlookup3: delete "old" (delete "new" (delete "guard" vs)) !! "new" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup3. simpl.
-
-    assert (Hlookup4: delete "old" (delete "new" (delete "guard" vs)) !! "old" = None).
-    { repeat (apply lookup_delete_None; try (by left) || right). }
-    rewrite Hlookup4. simpl.
-
-    wp_pures.
-    wp_load.
-    wp_pures.
-    wp_store.
-    wp_pures.
-    iExists inner. iExists (lk, #l)%V. iSplitR; try done. iFrame.
-    iAssert (∃ inner, l ↦ inner ∗ A inner)%I with "[Hl HA2]" as "Hguard".
-    { iExists w2. iFrame. }
-    iExists N. iExists γ. iExists l. iExists lk. iSplitR; try done.
-    iFrame.
+    iExists N, γ, l, lk. iSplit=> //.
   Qed.
 
 End types_properties.
