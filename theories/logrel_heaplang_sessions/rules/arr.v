@@ -47,5 +47,27 @@ Section properties.
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
 
+  Lemma ltyped_test_id A:
+    ∅ ⊨ (λ: "x", "x")%V : copy (A → A).
+  Proof.
+    iIntros (vs) "HΓ /=".
+    wp_apply wp_value.
+    iModIntro.
+    iIntros (v) "HA".
+    wp_pures.
+    iApply "HA".
+  Qed.
+
   (* TODO: Typing rule for copyable functions *)
+  Lemma ltyped_lam_copy Γ Γ' f A1 A2:
+    env_copy Γ Γ' -∗ (Γ' ⊨ f : A1 → A2) -∗ Γ ⊨ f : copy (A1 → A2).
+  Proof.
+    iIntros "Hcopy Hf" (vs) "HΓ /=".
+    iPoseProof ("Hcopy" with "HΓ") as "#HΓ'".
+    iPoseProof ("Hf" with "HΓ'") as "Hf".
+    wp_apply (wp_wand with "Hf").
+    iIntros (f2) "Hf2".
+    iModIntro.
+  Admitted.
+
 End properties.
