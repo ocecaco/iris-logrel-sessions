@@ -1,4 +1,4 @@
-From iris_examples.logrel_heaplang_sessions Require Export lty ltyping split.
+From iris_examples.logrel_heaplang_sessions Require Export lty ltyping split copy.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
@@ -46,4 +46,6 @@ Section properties.
     { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
+
+  (* TODO: Typing rule for copyable functions *)
 End properties.

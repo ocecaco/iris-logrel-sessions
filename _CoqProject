@@ -13,6 +13,7 @@ theories/logrel_heaplang_sessions/ltyping_safety.v
 theories/logrel_heaplang_sessions/env.v
 theories/logrel_heaplang_sessions/split.v
 
+theories/logrel_heaplang_sessions/rules/copy.v
 theories/logrel_heaplang_sessions/rules/basic.v
 theories/logrel_heaplang_sessions/rules/arr.v
 theories/logrel_heaplang_sessions/rules/prod.v

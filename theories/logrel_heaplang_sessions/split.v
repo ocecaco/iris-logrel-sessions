@@ -55,4 +55,6 @@ Section EnvironmentSplitting.
     iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
     iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; iFrame; eauto.
   Qed.
+
+  Definition env_copy Γ Γ' : iProp Σ := (∀ vs, env_ltyped Γ vs -∗ □ env_ltyped Γ' vs)%I.
 End EnvironmentSplitting.
