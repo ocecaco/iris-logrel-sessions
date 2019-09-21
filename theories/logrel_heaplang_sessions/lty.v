@@ -1,7 +1,6 @@
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
-From iris.heap_lang.lib Require Import spin_lock.
 
 (* The domain of semantic types: persistent Iris predicates over values *)
 Record lty Σ := Lty {
@@ -40,16 +39,20 @@ End lty_ofe.
 
 Arguments ltyC : clear implicits.
 
-(* Typing for operators *)
-Class LTyUnboxed `{heapG Σ} (A : lty Σ) :=
-  lty_unboxed v : A v -∗ ⌜ val_is_unboxed v ⌝.
+Section Classes.
+  Context {Σ : gFunctors}.
 
-Class LTyUnOp `{heapG Σ} (op : un_op) (A B : lty Σ) :=
-  lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∗ B w.
+  (* Typing for operators *)
+  Class LTyUnboxed (A : lty Σ) :=
+    lty_unboxed v : A v -∗ ⌜ val_is_unboxed v ⌝.
 
-Class LTyBinOp `{heapG Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
-  lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∗ B w.
+  Class LTyUnOp (op : un_op) (A B : lty Σ) :=
+    lty_un_op v : A v -∗ ∃ w, ⌜ un_op_eval op v = Some w ⌝ ∗ B w.
 
-(* Copy types *)
-Class LTyCopy `{heapG Σ} (A : lty Σ) :=
-  lty_copy v :> Persistent (A v).
+  Class LTyBinOp (op : bin_op) (A1 A2 B : lty Σ) :=
+    lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∗ B w.
+
+  (* Copy types *)
+  Class LTyCopy (A : lty Σ) :=
+    lty_copy v :> Persistent (A v).
+End Classes.

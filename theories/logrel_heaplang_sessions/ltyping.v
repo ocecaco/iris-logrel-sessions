@@ -1,3 +1,4 @@
+From iris_examples.logrel_heaplang_sessions Require Export lty env.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
@@ -6,11 +7,6 @@ From iris.heap_lang Require Import notation proofmode.
 Definition ltyped  `{heapG Σ}
     (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
+
 Notation "Γ ⊨ e : A" := (ltyped Γ e A)
   (at level 100, e at next level, A at level 200).
-
-Section types_properties.
-  Context `{lockG Σ, heapG Σ, proto_chanG Σ}.
-  Implicit Types A B : lty Σ.
-  Implicit Types C : lty Σ → lty Σ.
-End types_properties.
