@@ -17,12 +17,12 @@ theories/logrel_heaplang_sessions/rules/basic.v
 theories/logrel_heaplang_sessions/rules/arr.v
 theories/logrel_heaplang_sessions/rules/prod.v
 theories/logrel_heaplang_sessions/rules/sum.v
+theories/logrel_heaplang_sessions/rules/any.v
+theories/logrel_heaplang_sessions/rules/ref.v
 
 # theories/logrel_heaplang_sessions/rules/chan.v
 # theories/logrel_heaplang_sessions/rules/operators.v
 # theories/logrel_heaplang_sessions/rules/mutex.v
 # theories/logrel_heaplang_sessions/rules/exist.v
-# theories/logrel_heaplang_sessions/rules/any.v
-# theories/logrel_heaplang_sessions/rules/ref.v
 # theories/logrel_heaplang_sessions/rules/rec.v
 # theories/logrel_heaplang_sessions/rules/forall.v

@@ -1,7 +1,19 @@
+From iris_examples.logrel_heaplang_sessions Require Export lty ltyping any arr prod.
+From iris.heap_lang Require Export lifting metatheory.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation proofmode.
+
+Section types.
+  Context `{heapG Σ}.
+
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ A v)%I.
+End types.
 
 Notation "'ref' A" := (lty_ref A) : lty_scope.
+
+Section properties.
+  Context `{heapG Σ}.
 
   Global Instance lty_ref_ne : NonExpansive2 (@lty_ref Σ _).
   Proof. solve_proper. Qed.
@@ -9,7 +21,7 @@ Notation "'ref' A" := (lty_ref A) : lty_scope.
   Global Instance lty_ref_unboxed A : LTyUnboxed (ref A).
   Proof. iIntros (v). by iDestruct 1 as (i w ->) "?". Qed.
 
-    Definition refalloc : val := λ: "init", ref "init".
+  Definition refalloc : val := λ: "init", ref "init".
   Lemma ltyped_alloc Γ A : Γ ⊨ refalloc : (A → ref A)%lty.
   Proof.
     iIntros (vs) "HΓ /=".
@@ -55,3 +67,4 @@ Notation "'ref' A" := (lty_ref A) : lty_scope.
     iExists l, new. iSplit=> //.
     iFrame "Hl Hnew".
   Qed.
+End properties.
