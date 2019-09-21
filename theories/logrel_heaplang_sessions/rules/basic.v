@@ -1,0 +1,28 @@
+From iris.heap_lang Require Export lifting metatheory.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation proofmode.
+
+Section types.
+  Context `{heapG Σ, lockG Σ, proto_chanG Σ}.
+
+  Definition lty_unit : lty Σ := Lty (λ w, ⌜ w = #() ⌝%I).
+  Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
+  Definition lty_int : lty Σ := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
+End types.
+
+Notation "()" := lty_unit : lty_scope.
+
+  (* Unboxed types *)
+  Global Instance lty_unit_unboxed : LTyUnboxed ().
+  Proof. by iIntros (v ->). Qed.
+  Global Instance lty_bool_unboxed : LTyUnboxed lty_bool.
+  Proof. iIntros (v). by iDestruct 1 as (b) "->". Qed.
+  Global Instance lty_int_unboxed : LTyUnboxed lty_int.
+  Proof. iIntros (v). by iDestruct 1 as (i) "->". Qed.
+
+  Lemma ltyped_unit Γ : Γ ⊨ #() : ().
+  Proof. iIntros (vs) "_ /=". by iApply wp_value. Qed.
+  Lemma ltyped_bool Γ (b : bool) : Γ ⊨ #b : lty_bool.
+  Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
+  Lemma ltyped_nat Γ (n : Z) : Γ ⊨ #n : lty_int.
+  Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
