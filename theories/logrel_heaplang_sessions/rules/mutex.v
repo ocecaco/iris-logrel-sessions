@@ -1,4 +1,11 @@
+From iris_examples.logrel_heaplang_sessions Require Export lty ltyping arr prod.
+From iris.heap_lang Require Export lifting metatheory.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
+
+Section types.
+  Context `{heapG Σ, lockG Σ}.
 
   (* TODO: Maybe re-use the strong reference for this *)
   Definition lty_mutex (A : lty Σ) : lty Σ := Lty (λ w,
@@ -6,9 +13,13 @@ From iris.heap_lang.lib Require Import spin_lock.
 
   Definition lty_mutexguard (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ (N : namespace) (γ : gname) (l : loc) (lk : val) (v : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner) ∗ locked γ ∗ l ↦ v)%I.
+End types.
 
 Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
 Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : lty_scope.
+
+Section properties.
+  Context `{heapG Σ, lockG Σ}.
 
   Definition mutexalloc : val := λ: "x", (newlock #(), ref "x").
   Lemma ltyped_mutexalloc Γ A:
@@ -70,3 +81,4 @@ Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : lty_scope.
     wp_pures.
     iExists N, γ, l, lk. iSplit=> //.
   Qed.
+End properties.
