@@ -1,7 +1,18 @@
+From iris_examples.logrel_heaplang_sessions Require Export lty ltyping split.
+From iris.heap_lang Require Export lifting metatheory.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import notation proofmode.
+
+Section types.
+  Context `{heapG Σ}.
   Definition lty_arr (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
     ∀ v, A1 v -∗ WP App w v {{ A2 }})%I.
+End types.
 
 Infix "→" := lty_arr : lty_scope.
+
+Section properties.
+  Context `{heapG Σ}.
 
   Global Instance lty_arr_ne : NonExpansive2 (@lty_arr Σ _).
   Proof. solve_proper. Qed.
@@ -35,3 +46,4 @@ Infix "→" := lty_arr : lty_scope.
     { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
+End properties.

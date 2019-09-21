@@ -4,7 +4,7 @@ From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
 
 (* The semantic typing judgment *)
-Definition ltyped  `{heapG Σ}
+Definition ltyped `{heapG Σ}
     (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
   (∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }})%I.
 
