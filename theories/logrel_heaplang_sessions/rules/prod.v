@@ -28,7 +28,9 @@ Section properties.
     wp_pures. iExists w1, w2. by iFrame.
   Qed.
 
-  (* TODO: use Any type to allow moving out one component of a pair *)
+  (* Tried to use the Any type to implement fst and snd, but it
+  doesn't work because the result has to be of the type A * (any * B),
+  which is useless since it is a pair again. *)
   Definition split : val := λ: "pair" "f", "f" (Fst "pair") (Snd "pair").
   Lemma ltyped_split Γ A1 A2 B:
     Γ ⊨ split : (A1 * A2 → (A1 → A2 → B) → B)%lty.
