@@ -17,7 +17,7 @@ Infix "→" := lty_arr : lty_scope.
 Section properties.
   Context `{heapG Σ}.
 
-  Global Instance lty_prod_contractive n :
+  Global Instance lty_arr_contractive n :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lty_arr Σ _).
   Proof.
     (* solve_contractive. *)
@@ -69,13 +69,17 @@ Section properties.
   variables. *)
   Lemma ltyped_lam_copy Γ Γ' x e A1 A2:
     env_copy Γ Γ' →
-    (Γ' ⊨ (λ: x, e) : A1 → A2) →
+    (binder_insert x A1 Γ' ⊨ e : A2) →
     Γ ⊨ (λ: x, e) : copy (A1 → A2).
   Proof.
-    intros Hcopy He. iIntros (vs) "HΓ /=".
+    intros Hcopy He.
     iPoseProof He as "He".
+    iIntros (vs) "HΓ /=". wp_pures.
     iPoseProof (Hcopy with "HΓ") as "#HΓ'".
-    iPoseProof ("He" with "HΓ'") as "H'".
-  Admitted.
+    iModIntro. iIntros (v) "HA1". wp_pures.
+    iSpecialize ("He" $! (binder_insert x v vs) with "[HΓ' HA1]").
+    { iApply (env_ltyped_insert with "[HA1 //] [HΓ' //]"). }
+    destruct x as [|x]; rewrite /= -?subst_map_insert //.
+  Qed.
 
 End properties.
