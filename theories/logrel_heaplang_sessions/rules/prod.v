@@ -19,10 +19,13 @@ Section properties.
   Proof. solve_proper. Qed.
 
   Lemma ltyped_pair Γ Γ1 Γ2 e1 e2 A1 A2 :
-    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : A1) -∗ (Γ2 ⊨ e2 : A2) -∗ Γ ⊨ (e1,e2) : A1 * A2.
+    env_split Γ Γ1 Γ2 →
+    (Γ1 ⊨ e1 : A1) -∗
+    (Γ2 ⊨ e2 : A2) -∗
+    Γ ⊨ (e1,e2) : A1 * A2.
   Proof.
-    iIntros "#Hsplit #H1 #H2" (vs) "!> HΓ /=".
-    iPoseProof ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    intros Hsplit. iIntros "#H1 #H2" (vs) "!> HΓ /=".
+    iPoseProof (Hsplit with "HΓ") as "[HΓ1 HΓ2]".
     wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
     wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
     wp_pures. iExists w1, w2. by iFrame.

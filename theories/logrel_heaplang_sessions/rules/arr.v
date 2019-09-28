@@ -25,11 +25,11 @@ Section properties.
   Qed.
 
   Lemma ltyped_app Γ Γ1 Γ2 e1 e2 A1 A2 :
-    env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : A1 → A2) -∗ (Γ2 ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
+    env_split Γ Γ1 Γ2 → (Γ1 ⊨ e1 : A1 → A2) -∗ (Γ2 ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
   Proof.
-    iIntros "#Hsplit #H1 #H2" (vs) "!> HΓ /=".
-    iSpecialize ("Hsplit" with "HΓ").
-    iDestruct "Hsplit" as "[HΓ1 HΓ2]".
+    intros Hsplit.
+    iIntros "#H1 #H2" (vs) "!> HΓ /=".
+    iPoseProof (Hsplit with "HΓ") as "[HΓ1 HΓ2]".
     wp_apply (wp_wand with "(H2 [HΓ2 //])").
     iIntros (v) "HA1".
     wp_apply (wp_wand with "(H1 [HΓ1 //])").
@@ -52,12 +52,12 @@ Section properties.
   because f is probably a closure and might contain free
   variables. *)
   Lemma ltyped_lam_copy Γ Γ' x e A1 A2:
-    env_copy Γ Γ' -∗
+    env_copy Γ Γ' →
     (Γ' ⊨ (λ: x, e) : A1 → A2) -∗
     Γ ⊨ (λ: x, e) : copy (A1 → A2).
   Proof.
-    iIntros "#Hcopy #H" (vs) "!> HΓ /=".
-    iPoseProof ("Hcopy" with "HΓ") as "#HΓ'".
+    intros Hcopy. iIntros "#H" (vs) "!> HΓ /=".
+    iPoseProof (Hcopy with "HΓ") as "#HΓ'".
     iPoseProof ("H" with "HΓ'") as "H'".
   Admitted.
 
