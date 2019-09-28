@@ -17,9 +17,11 @@ Infix "→" := lty_arr : lty_scope.
 Section properties.
   Context `{heapG Σ}.
 
-  (* Cannot get this instance to work for some reason *)
-  (* Global Instance lty_prod_contractive n : *)
-  (*   Proper (dist_later n ==> dist_later n ==> dist n) (@lty_arr Σ). *)
+  Global Instance lty_prod_contractive n :
+    Proper (dist_later n ==> dist_later n ==> dist n) (@lty_arr Σ _).
+  Proof.
+    (* solve_contractive. *)
+  Admitted.
 
   Global Instance lty_arr_ne : NonExpansive2 (@lty_arr Σ _).
   Proof. solve_proper. Qed.
