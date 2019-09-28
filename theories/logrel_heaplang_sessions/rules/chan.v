@@ -25,16 +25,17 @@ Section properties.
     wp_apply wp_value.
     iIntros (u) "Hu".
     rewrite /lty_unit /lty_car.
-    iDestruct "Hu" as %Hu.
-    rewrite Hu.
     rewrite /chanalloc.
     wp_pures.
+    iDestruct "Hu" as %Hu.
     wp_apply (new_chan_proto_spec with "[//]").
     iIntros (c1 c2) "Hp".
     iPoseProof ("Hp" $! P) as "Hp".
     iMod "Hp".
     wp_pures.
     iExists c1, c2. iSplit=> //.
+    iDestruct "Hp" as "[Hp1 Hp2]".
+    iSplitL "Hp1"; by iModIntro.
   Qed.
 
   Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".

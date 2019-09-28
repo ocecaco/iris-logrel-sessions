@@ -45,8 +45,8 @@ Section properties.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
-    iDestruct "Hv" as (w1 w2 ->) "[Hw1 Hw2]".
     rewrite /split. wp_pures.
+    iDestruct "Hv" as (w1 w2 ->) "[Hw1 Hw2]".
     iIntros (f) "Hf".
     wp_pures.
     iPoseProof ("Hf" with "Hw1") as "Hf".

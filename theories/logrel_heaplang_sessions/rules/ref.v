@@ -48,9 +48,9 @@ Section properties.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
+    rewrite /refload. wp_pures.
     iDestruct "Hv" as (l w ->) "[Hl Hw]".
-    rewrite /refload.
-    wp_pures. wp_load.
+    wp_load.
     wp_pures.
     iExists w, #l. iSplit=> //.
     iFrame "Hw".
@@ -66,8 +66,8 @@ Section properties.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
-    iDestruct "Hv" as (l old ->) "[Hl Hold]".
     rewrite /refstore. wp_pures.
+    iDestruct "Hv" as (l old ->) "[Hl Hold]".
     iIntros (new) "Hnew". wp_pures.
     wp_store.
     iExists l, new. iSplit=> //.
