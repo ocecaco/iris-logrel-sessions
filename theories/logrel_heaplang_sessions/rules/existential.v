@@ -29,10 +29,11 @@ Section properties.
 
   Definition unpack : val := λ: "exist" "f", "f" #() "exist".
   Lemma ltyped_unpack C B :
-    ∅ ⊨ unpack : (∃ A, C A) → (∀ A, C A → B) → B.
+    ∅ ⊨ unpack : (∃ A, C A) → (∀ A, C A ⊸ B) ⊸ B.
   Proof.
     iIntros (vs) "HΓ /=".
-    wp_apply wp_value. iIntros (v) "Hv".
+    wp_apply wp_value.
+    iModIntro. iIntros (v) "Hv".
     iDestruct "Hv" as (A) "Hv".
     rewrite /unpack. wp_pures.
     iIntros (fty) "Hfty". wp_pures.

@@ -26,11 +26,12 @@ Section properties.
 
   Definition refalloc : val := λ: "init", ref "init".
   Lemma ltyped_alloc A :
-    ∅ ⊨ refalloc : (A → ref A)%lty.
+    ∅ ⊨ refalloc : A → ref A.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (v) "Hv". rewrite /refalloc. wp_pures.
+    iModIntro. iIntros (v) "Hv".
+    rewrite /refalloc. wp_pures.
     wp_alloc l as "Hl".
     iExists l, v. iSplit=> //.
     iFrame "Hv Hl".
@@ -47,7 +48,7 @@ Section properties.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (v) "Hv".
+    iModIntro. iIntros (v) "Hv".
     rewrite /refload. wp_pures.
     iDestruct "Hv" as (l w ->) "[Hl Hw]".
     wp_load.
@@ -61,11 +62,11 @@ Section properties.
 
   Definition refstore : val := λ: "r" "new", "r" <- "new";; "r".
   Lemma ltyped_store A B:
-    ∅ ⊨ refstore : (ref A → B → ref B)%lty.
+    ∅ ⊨ refstore : (ref A → B ⊸ ref B)%lty.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (v) "Hv".
+    iModIntro. iIntros (v) "Hv".
     rewrite /refstore. wp_pures.
     iDestruct "Hv" as (l old ->) "[Hl Hold]".
     iIntros (new) "Hnew". wp_pures.

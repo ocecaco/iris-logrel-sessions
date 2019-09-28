@@ -48,12 +48,13 @@ Section properties.
     λ: "pair" "left" "right",
     Case "pair" "left" "right".
   Lemma ltyped_paircase A1 A2 B:
-    ∅ ⊨ paircase : (A1 + A2 → (A1 → B) → (A2 → B) → B)%lty.
+    ∅ ⊨ paircase : (A1 + A2 → (A1 ⊸ B) ⊸ (A2 ⊸ B) ⊸ B)%lty.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (p) "Hp".
-    rewrite /paircase. wp_pures.
+    rewrite /paircase.
+    iModIntro. iIntros (p) "Hp".
+    wp_pures.
     iIntros (f_left) "Hleft". wp_pures.
     iIntros (f_right) "Hright". wp_pures.
     iDestruct "Hp" as "[Hp|Hp]".

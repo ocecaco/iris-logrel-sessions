@@ -40,10 +40,10 @@ Section properties.
   which is useless since it is a pair again. *)
   Definition split : val := λ: "pair" "f", "f" (Fst "pair") (Snd "pair").
   Lemma ltyped_split A1 A2 B:
-    ∅ ⊨ split : (A1 * A2 → (A1 → A2 → B) → B)%lty.
+    ∅ ⊨ split : (A1 * A2 → (A1 ⊸ A2 ⊸ B) ⊸ B)%lty.
   Proof.
     iIntros (vs) "HΓ /=".
-    wp_apply wp_value.
+    wp_apply wp_value. iModIntro.
     iIntros (v) "Hv".
     rewrite /split. wp_pures.
     iDestruct "Hv" as (w1 w2 ->) "[Hw1 Hw2]".

@@ -37,7 +37,7 @@ Section properties.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (v) "Hv".
+    iModIntro. iIntros (v) "Hv".
     rewrite /mutexalloc. wp_pures.
     wp_alloc l as "Hl".
     wp_bind (newlock _).
@@ -56,7 +56,7 @@ Section properties.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (m) "Hm".
+    iModIntro. iIntros (m) "Hm".
     rewrite /mutexacquire. wp_pures.
     iDestruct "Hm" as (N γ l lk ->) "#Hlock".
     wp_bind (acquire _).
@@ -73,11 +73,11 @@ Section properties.
 
   Definition mutexrelease : val := λ: "inner" "guard", Snd "guard" <- "inner";; release (Fst "guard");; "guard".
   Lemma ltyped_mutexrelease A:
-    ∅ ⊨ mutexrelease : A → mutexguard A → mutex A.
+    ∅ ⊨ mutexrelease : A → mutexguard A ⊸ mutex A.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (w1) "Hw1".
+    iModIntro. iIntros (w1) "Hw1".
     rewrite /mutexrelease. wp_pures.
     iIntros (w2) "Hw2".
     wp_pures.

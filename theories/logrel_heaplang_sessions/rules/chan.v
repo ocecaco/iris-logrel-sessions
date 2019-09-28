@@ -23,7 +23,7 @@ Section properties.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (u) "Hu".
+    iModIntro. iIntros (u) "Hu".
     rewrite /lty_unit /lty_car.
     rewrite /chanalloc.
     wp_pures.
@@ -40,11 +40,11 @@ Section properties.
 
   Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
   Lemma ltyped_chansend A P:
-    ∅ ⊨ chansend : chan (<!!> A; P) → A → chan P.
+    ∅ ⊨ chansend : chan (<!!> A; P) → A ⊸ chan P.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (c) "Hc".
+    iModIntro. iIntros (c) "Hc".
     rewrite /chansend. wp_pures.
     iIntros (w) "Hw".
     wp_pures.
@@ -64,7 +64,7 @@ Section properties.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
-    iIntros (c) "Hc".
+    iModIntro. iIntros (c) "Hc".
     rewrite /lty_chan /lty_car.
     rewrite /chanrecv. wp_pures.
     wp_apply (recv_proto_spec with "Hc").

@@ -12,7 +12,8 @@ Section types.
     ∀ v, ▷ A1 v -∗ WP App w v {{ A2 }})%I.
 End types.
 
-Infix "→" := lty_arr : lty_scope.
+Notation "A → B" := (lty_copy (lty_arr A B)) : lty_scope.
+Infix "⊸" := lty_arr (at level 20, right associativity) : lty_scope.
 
 Section properties.
   Context `{heapG Σ}.
@@ -36,7 +37,7 @@ Section properties.
 
   Lemma ltyped_app Γ Γ1 Γ2 e1 e2 A1 A2 :
     env_split Γ Γ1 Γ2 →
-    (Γ1 ⊨ e1 : A1 → A2) → (Γ2 ⊨ e2 : A1) →
+    (Γ1 ⊨ e1 : A1 ⊸ A2) → (Γ2 ⊨ e2 : A1) →
     Γ ⊨ e1 e2 : A2.
   Proof.
     intros Hsplit H1 H2.
@@ -52,7 +53,7 @@ Section properties.
 
   Lemma ltyped_lam Γ x e A1 A2 :
     (binder_insert x A1 Γ ⊨ e : A2) →
-    Γ ⊨ (λ: x, e) : A1 → A2.
+    Γ ⊨ (λ: x, e) : A1 ⊸ A2.
   Proof.
     intros He.
     iPoseProof He as "He".
@@ -70,7 +71,7 @@ Section properties.
   Lemma ltyped_lam_copy Γ Γ' x e A1 A2:
     env_copy Γ Γ' →
     (binder_insert x A1 Γ' ⊨ e : A2) →
-    Γ ⊨ (λ: x, e) : copy (A1 → A2).
+    Γ ⊨ (λ: x, e) : A1 → A2.
   Proof.
     intros Hcopy He.
     iPoseProof He as "He".
