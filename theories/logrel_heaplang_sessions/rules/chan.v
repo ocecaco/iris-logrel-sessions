@@ -6,9 +6,7 @@ From actris.channel Require Import proto_channel proofmode.
 
 Section types.
   Context `{heapG Σ, proto_chanG Σ}.
-  (* TODO: Maybe don't use iProto directly, but wrap it in a
-  record or something. *)
-  Definition lty_chan (P : iProto Σ) : lty Σ := Lty (λ w, w ↣ P)%I.
+  Definition lty_chan (P : lproto Σ) : lty Σ := Lty (λ w, w ↣ P)%I.
 End types.
 
 Notation "'chan' A" := (lty_chan A) (at level 10) : lty_scope.
@@ -41,7 +39,7 @@ Section properties.
 
   Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
   Lemma ltyped_chansend A P:
-    ∅ ⊨ chansend : chan (lproto_send A P) → A → chan P.
+    ∅ ⊨ chansend : chan (<!!> A; P) → A → chan P.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
@@ -61,7 +59,7 @@ Section properties.
 
   Definition chanrecv : val := λ: "chan", (recv "chan", "chan").
   Lemma ltyped_chanrecv A P:
-    ∅ ⊨ chanrecv : chan (lproto_recv A P) → A * chan P.
+    ∅ ⊨ chanrecv : chan (<??> A; P) → A * chan P.
   Proof.
     iIntros (vs) "HΓ /=".
     wp_apply wp_value.
