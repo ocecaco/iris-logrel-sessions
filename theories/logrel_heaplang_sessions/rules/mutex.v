@@ -9,10 +9,15 @@ Section types.
 
   (* TODO: Maybe re-use the strong reference for this *)
   Definition lty_mutex (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner))%I.
+    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val),
+      ⌜ w = PairV lk #l ⌝
+      ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner))%I.
 
   Definition lty_mutexguard (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val) (v : val), ⌜ w = PairV lk #l ⌝ ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner) ∗ locked γ ∗ l ↦ v)%I.
+    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val) (v : val),
+      ⌜ w = PairV lk #l ⌝
+      ∗ is_lock N γ lk (∃ inner, l ↦ inner ∗ A inner)
+      ∗ locked γ ∗ l ↦ v)%I.
 End types.
 
 Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
@@ -81,4 +86,5 @@ Section properties.
     wp_pures.
     iExists N, γ, l, lk. iSplit=> //.
   Qed.
+
 End properties.

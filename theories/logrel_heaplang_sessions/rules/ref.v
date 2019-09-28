@@ -7,13 +7,16 @@ Section types.
   Context `{heapG Σ}.
 
   Definition lty_ref (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ A v)%I.
+    ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ A v)%I.
 End types.
 
 Notation "'ref' A" := (lty_ref A) : lty_scope.
 
 Section properties.
   Context `{heapG Σ}.
+
+  Global Instance lty_ref_contractive : Contractive (@lty_ref Σ _).
+  Proof. solve_contractive. Qed.
 
   Global Instance lty_ref_ne : NonExpansive2 (@lty_ref Σ _).
   Proof. solve_proper. Qed.
@@ -53,6 +56,7 @@ Section properties.
     iFrame "Hw".
     iExists l, w. iSplit=> //.
     iFrame "Hl".
+    by iModIntro.
   Qed.
 
   Definition refstore : val := λ: "r" "new", "r" <- "new";; "r".
@@ -69,4 +73,5 @@ Section properties.
     iExists l, new. iSplit=> //.
     iFrame "Hl Hnew".
   Qed.
+
 End properties.

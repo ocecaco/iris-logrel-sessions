@@ -7,7 +7,7 @@ Section types.
   Context `{heapG Σ}.
 
   Definition lty_prod (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
-    ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∗ A1 w1 ∗ A2 w2)%I.
+    ∃ w1 w2, ⌜w = PairV w1 w2⌝ ∗ ▷ A1 w1 ∗ ▷ A2 w2)%I.
 End types.
 
 Infix "*" := lty_prod : lty_scope.
@@ -15,6 +15,9 @@ Infix "*" := lty_prod : lty_scope.
 Section properties.
   Context `{heapG Σ}.
 
+  Global Instance lty_prod_contractive n:
+    Proper (dist_later n ==> dist_later n ==> dist n) (@lty_prod Σ).
+  Proof. solve_contractive. Qed.
   Global Instance lty_prod_ne : NonExpansive2 (@lty_prod Σ).
   Proof. solve_proper. Qed.
 

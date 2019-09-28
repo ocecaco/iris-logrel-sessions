@@ -21,6 +21,12 @@ Notation "'copy' A" := (lty_copy A) (at level 10) : lty_scope.
 Section properties.
   Context `{heapG Σ}.
 
+  (* Maybe copy shouldn't be contractive since most operations on it
+  don't take any steps? *)
+
+  Global Instance lty_copy_ne : NonExpansive (@lty_copy Σ).
+  Proof. solve_proper. Qed.
+
   Global Instance lty_copy_copy A : @LTyCopy Σ (copy A)%lty.
   Proof.
     intros v. rewrite /Persistent. iIntros "#Hv".
