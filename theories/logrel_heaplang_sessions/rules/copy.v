@@ -30,7 +30,8 @@ Section properties.
   Lemma ltyped_copy_sub Γ e A:
     (Γ ⊨ e : copy A) -∗ Γ ⊨ e : A.
   Proof.
-    iIntros "H" (vs) "HΓ /=".
+    iStartProof.
+    iIntros "#H" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H [HΓ //])"). iIntros (v) "Hcopy".
     iDestruct "Hcopy" as "#HA".
     iApply "HA".
@@ -41,7 +42,7 @@ Section properties.
   Lemma ltyped_copy_reflect Γ e A:
     LTyCopy A → (Γ ⊨ e : A) -∗ Γ ⊨ e : copy A.
   Proof.
-    intros Hcopy. iIntros "H" (vs) "HΓ /=".
+    intros Hcopy. iIntros "#H" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H [HΓ //])"). iIntros (v) "#HA".
     iModIntro. iApply "HA".
   Qed.

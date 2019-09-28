@@ -28,7 +28,7 @@ Section properties.
   Lemma ltyped_fold Γ e (B : ltyC Σ -n> ltyC Σ) :
     (Γ ⊨ e : B (lty_rec B)) -∗ Γ ⊨ e : lty_rec B.
   Proof.
-    iIntros "H" (vs) "HΓ /=".
+    iIntros "#H" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H [HΓ //])"); iIntros (w) "HB".
     by iEval (rewrite lty_rec_unfold /lty_car /=).
   Qed.
@@ -36,7 +36,7 @@ Section properties.
   Lemma ltyped_unfold Γ e (B : ltyC Σ -n> ltyC Σ) :
     (Γ ⊨ e : lty_rec B) -∗ Γ ⊨ rec_unfold e : B (lty_rec B).
   Proof.
-    iIntros "H" (vs) "HΓ /=".
+    iIntros "#H" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H [HΓ //])"); iIntros (w) "HB".
     iEval (rewrite lty_rec_unfold /lty_car /=) in "HB". by wp_lam.
   Qed.

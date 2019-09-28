@@ -21,9 +21,9 @@ Section properties.
   Lemma ltyped_injl Γ e A1 A2:
     (Γ ⊨ e : A1) -∗ Γ ⊨ InjL e : A1 + A2.
   Proof.
-    iIntros "HA" (vs) "HΓ /=".
+    iIntros "#HA" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(HA [HΓ //])").
-    iIntros (v) "HA".
+    iIntros (v) "HA'".
     wp_pures.
     iLeft. iExists v. auto.
   Qed.
@@ -31,9 +31,9 @@ Section properties.
   Lemma ltyped_injr Γ e A1 A2:
     (Γ ⊨ e : A2) -∗ Γ ⊨ InjR e : A1 + A2.
   Proof.
-    iIntros "HA" (vs) "HΓ /=".
+    iIntros "#HA" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(HA [HΓ //])").
-    iIntros (v) "HA".
+    iIntros (v) "HA'".
     wp_pures.
     iRight. iExists v. auto.
   Qed.
@@ -41,10 +41,10 @@ Section properties.
   Definition paircase : val :=
     λ: "pair" "left" "right",
     Case "pair" "left" "right".
-  Lemma ltyped_paircase Γ A1 A2 B:
-    Γ ⊨ paircase : (A1 + A2 → (A1 → B) → (A2 → B) → B)%lty.
+  Lemma ltyped_paircase A1 A2 B:
+    ∅ ⊨ paircase : (A1 + A2 → (A1 → B) → (A2 → B) → B)%lty.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (p) "Hp".
     rewrite /paircase. wp_pures.

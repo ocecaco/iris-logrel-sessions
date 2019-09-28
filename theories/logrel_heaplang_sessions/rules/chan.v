@@ -20,10 +20,10 @@ Section properties.
   can't get rid of the modality in the premises, becaues I don't have
   a WP as my goal. *)
   Definition chanalloc : val := λ: "u", let: "cc" := new_chan #() in "cc".
-  Lemma ltyped_chanalloc Γ P:
-    Γ ⊨ chanalloc : () → (chan P * chan (lproto_dual P)).
+  Lemma ltyped_chanalloc P:
+    ∅ ⊨ chanalloc : () → (chan P * chan (lproto_dual P)).
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (u) "Hu".
     rewrite /lty_unit /lty_car.
@@ -40,10 +40,10 @@ Section properties.
   Qed.
 
   Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
-  Lemma ltyped_chansend Γ A P:
-    Γ ⊨ chansend : chan (lproto_send A P) → A → chan P.
+  Lemma ltyped_chansend A P:
+    ∅ ⊨ chansend : chan (lproto_send A P) → A → chan P.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (c) "Hc".
     rewrite /chansend. wp_pures.
@@ -60,10 +60,10 @@ Section properties.
   Qed.
 
   Definition chanrecv : val := λ: "chan", (recv "chan", "chan").
-  Lemma ltyped_chanrecv Γ A P:
-    Γ ⊨ chanrecv : chan (lproto_recv A P) → A * chan P.
+  Lemma ltyped_chanrecv A P:
+    ∅ ⊨ chanrecv : chan (lproto_recv A P) → A * chan P.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (c) "Hc".
     rewrite /lty_chan /lty_car.

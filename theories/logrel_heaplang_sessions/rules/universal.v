@@ -21,13 +21,13 @@ Section properties.
 
   Lemma ltyped_tlam Γ e C : (∀ A, Γ ⊨ e : C A) -∗ Γ ⊨ (λ: <>, e) : ∀ A, C A.
   Proof.
-    iIntros "H" (vs) "HΓ /=". wp_pures.
+    iIntros "#H" (vs) "!> HΓ /=". wp_pures.
     iIntros (A) "/=". wp_pures. by iApply ("H" $! A).
   Qed.
 
   Lemma ltyped_tapp Γ e C A : (Γ ⊨ e : ∀ A, C A) -∗ Γ ⊨ e #() : C A.
   Proof.
-    iIntros "H" (vs) "HΓ /=".
+    iIntros "#H" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H [HΓ //])"); iIntros (w) "HB". by iApply ("HB" $! A).
   Qed.
 

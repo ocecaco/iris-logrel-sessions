@@ -19,7 +19,7 @@ Section properties.
 
   Lemma ltyped_var Γ (x : string) A : Γ !! x = Some A → Γ ⊨ x : A.
   Proof.
-    iIntros (HΓx vs) "HΓ /=".
+    iIntros (HΓx vs) "!> HΓ /=".
     iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "HA"; first done.
     by iApply wp_value.
   Qed.
@@ -27,9 +27,9 @@ Section properties.
   Lemma ltyped_app Γ Γ1 Γ2 e1 e2 A1 A2 :
     env_split Γ Γ1 Γ2 -∗ (Γ1 ⊨ e1 : A1 → A2) -∗ (Γ2 ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
   Proof.
-    iIntros "Hcompat H1 H2" (vs) "HΓ /=".
-    iSpecialize ("Hcompat" with "HΓ").
-    iDestruct "Hcompat" as "[HΓ1 HΓ2]".
+    iIntros "#Hsplit #H1 #H2" (vs) "!> HΓ /=".
+    iSpecialize ("Hsplit" with "HΓ").
+    iDestruct "Hsplit" as "[HΓ1 HΓ2]".
     wp_apply (wp_wand with "(H2 [HΓ2 //])").
     iIntros (v) "HA1".
     wp_apply (wp_wand with "(H1 [HΓ1 //])").
@@ -40,34 +40,25 @@ Section properties.
     (binder_insert x A1 Γ ⊨ e : A2) -∗
     Γ ⊨ (λ: x, e) : A1 → A2.
   Proof.
-    iIntros "H" (vs) "HΓ /=". wp_pures.
+    iIntros "#H" (vs) "!> HΓ /=". wp_pures.
     iIntros (v) "HA1". wp_pures.
     iSpecialize ("H" $! (binder_insert x v vs) with "[HΓ HA1]").
     { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
 
-  Lemma ltyped_test_id A:
-    ∅ ⊨ (λ: "x", "x")%V : copy (A → A).
+  (* The first version of this had Γ ⊨ f : A1 → A2 with f : val, but
+  it seemed strange to me that substitution does nothing to values,
+  because f is probably a closure and might contain free
+  variables. *)
+  Lemma ltyped_lam_copy Γ Γ' x e A1 A2:
+    env_copy Γ Γ' -∗
+    (Γ' ⊨ (λ: x, e) : A1 → A2) -∗
+    Γ ⊨ (λ: x, e) : copy (A1 → A2).
   Proof.
-    iIntros (vs) "HΓ /=".
-    wp_apply wp_value.
-    iModIntro.
-    iIntros (v) "HA".
-    wp_pures.
-    iApply "HA".
-  Qed.
-
-  (* TODO: Typing rule for copyable functions *)
-  Lemma ltyped_lam_copy Γ Γ' f A1 A2:
-    env_copy Γ Γ' -∗ (Γ' ⊨ f : A1 → A2) -∗ Γ ⊨ f : copy (A1 → A2).
-  Proof.
-    iIntros "Hcopy Hf" (vs) "HΓ /=".
+    iIntros "#Hcopy #H" (vs) "!> HΓ /=".
     iPoseProof ("Hcopy" with "HΓ") as "#HΓ'".
-    iPoseProof ("Hf" with "HΓ'") as "Hf".
-    wp_apply (wp_wand with "Hf").
-    iIntros (f2) "Hf2".
-    iModIntro.
+    iPoseProof ("H" with "HΓ'") as "H'".
   Admitted.
 
 End properties.

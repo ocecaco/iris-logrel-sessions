@@ -26,9 +26,9 @@ Section properties.
   Proof. iIntros (v). by iDestruct 1 as (i) "->". Qed.
 
   Lemma ltyped_unit Γ : Γ ⊨ #() : ().
-  Proof. iIntros (vs) "_ /=". by iApply wp_value. Qed.
+  Proof. iIntros (vs) "!> _ /=". by iApply wp_value. Qed.
   Lemma ltyped_bool Γ (b : bool) : Γ ⊨ #b : lty_bool.
-  Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
+  Proof. iIntros (vs) "!> _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
   Lemma ltyped_nat Γ (n : Z) : Γ ⊨ #n : lty_int.
-  Proof. iIntros (vs) "_ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
+  Proof. iIntros (vs) "!> _ /=". iApply wp_value. rewrite /lty_car /=. eauto. Qed.
 End properties.

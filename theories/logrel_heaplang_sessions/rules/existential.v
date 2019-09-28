@@ -21,7 +21,7 @@ Section properties.
 
   Lemma ltyped_pack Γ e C A : (Γ ⊨ e : C A) -∗ Γ ⊨ e : ∃ A, C A.
   Proof.
-    iIntros "H" (vs) "HΓ /=".
+    iIntros "#H" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H [HΓ //])"); iIntros (w) "HB". by iExists A.
   Qed.
 
@@ -29,7 +29,7 @@ Section properties.
   Lemma ltyped_unpack Γ C B :
     Γ ⊨ unpack : (∃ A, C A) → (∀ A, C A → B) → B.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value. iIntros (v) "Hv".
     iDestruct "Hv" as (A) "Hv".
     rewrite /unpack. wp_pures.

@@ -22,10 +22,10 @@ Section properties.
   Context `{heapG Σ, lockG Σ}.
 
   Definition mutexalloc : val := λ: "x", (newlock #(), ref "x").
-  Lemma ltyped_mutexalloc Γ A:
-     Γ ⊨ mutexalloc : A → mutex A.
+  Lemma ltyped_mutexalloc A:
+     ∅ ⊨ mutexalloc : A → mutex A.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
     rewrite /mutexalloc. wp_pures.
@@ -41,10 +41,10 @@ Section properties.
   Qed.
 
   Definition mutexacquire : val := λ: "x", acquire (Fst "x");; (! (Snd "x"), "x").
-  Lemma ltyped_mutexacquire Γ A:
-     Γ ⊨ mutexacquire : mutex A → A * mutexguard A.
+  Lemma ltyped_mutexacquire A:
+     ∅ ⊨ mutexacquire : mutex A → A * mutexguard A.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (m) "Hm".
     iDestruct "Hm" as (N γ l lk ->) "#Hlock".
@@ -62,10 +62,10 @@ Section properties.
   Qed.
 
   Definition mutexrelease : val := λ: "inner" "guard", Snd "guard" <- "inner";; release (Fst "guard");; "guard".
-  Lemma ltyped_mutexrelease Γ A:
-     Γ ⊨ mutexrelease : A → mutexguard A → mutex A.
+  Lemma ltyped_mutexrelease A:
+    ∅ ⊨ mutexrelease : A → mutexguard A → mutex A.
   Proof.
-    iIntros (vs) "HΓ /=".
+    iIntros (vs) "!> HΓ /=".
     wp_apply wp_value.
     iIntros (w1) "Hw1".
     rewrite /mutexrelease. wp_pures.
