@@ -68,19 +68,27 @@ Section properties.
   it seemed strange to me that substitution does nothing to values,
   because f is probably a closure and might contain free
   variables. *)
-  Lemma ltyped_lam_copy Γ Γ' x e A1 A2:
+  Lemma ltyped_rec Γ Γ' f x e A1 A2:
     env_copy Γ Γ' →
-    (binder_insert x A1 Γ' ⊨ e : A2) →
-    Γ ⊨ (λ: x, e) : A1 → A2.
+    (binder_insert f (A1 → A2)%lty (binder_insert x A1 Γ') ⊨ e : A2) →
+    Γ ⊨ (rec: f x := e) : A1 → A2.
   Proof.
     intros Hcopy He.
     iPoseProof He as "He".
     iIntros (vs) "HΓ /=". wp_pures.
     iPoseProof (Hcopy with "HΓ") as "#HΓ'".
-    iModIntro. iIntros (v) "HA1". wp_pures.
-    iSpecialize ("He" $! (binder_insert x v vs) with "[HΓ' HA1]").
-    { iApply (env_ltyped_insert with "[HA1 //] [HΓ' //]"). }
-    destruct x as [|x]; rewrite /= -?subst_map_insert //.
+    iClear "HΓ". iLöb as "IH".
+    iModIntro.
+    iIntros (v) "HA1". wp_pures. set (r := RecV f x _).
+    iSpecialize ("He" $! (binder_insert f r (binder_insert x v vs)) with "[HΓ' HA1]").
+    { iApply (env_ltyped_insert with "IH"). iApply (env_ltyped_insert with "[HA1] [HΓ']").
+      - iFrame "HA1".
+      - iFrame "HΓ'". }
+    destruct x as [|x], f as [|f]; rewrite /= -?subst_map_insert //.
+    destruct (decide (x = f)) as [->|].
+    - by rewrite subst_subst delete_idemp insert_insert -subst_map_insert.
+    - rewrite subst_subst_ne // -subst_map_insert.
+      by rewrite -delete_insert_ne // -subst_map_insert.
   Qed.
 
 End properties.
