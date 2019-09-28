@@ -31,3 +31,4 @@ theories/logrel_heaplang_sessions/rules/chan.v
 theories/logrel_heaplang_sessions/rules/mutex.v
 
 # theories/logrel_heaplang_sessions/rules/operators.v
+theories/logrel_heaplang_sessions/examples/double.v
