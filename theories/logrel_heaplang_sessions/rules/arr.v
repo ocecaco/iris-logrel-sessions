@@ -83,7 +83,7 @@ Section properties.
     iSpecialize ("He" $! (binder_insert f r (binder_insert x v vs)) with "[HΓ' HA1]").
     { iApply (env_ltyped_insert with "IH"). iApply (env_ltyped_insert with "[HA1] [HΓ']").
       - iFrame "HA1".
-      - iFrame "HΓ'". }
+      - iFrame "HΓ'". } (* Why doesn't // work here for env_ltyped_insert premises? *)
     destruct x as [|x], f as [|f]; rewrite /= -?subst_map_insert //.
     destruct (decide (x = f)) as [->|].
     - by rewrite subst_subst delete_idemp insert_insert -subst_map_insert.
