@@ -1,4 +1,4 @@
-From iris_examples.logrel_heaplang_sessions Require Export lty ltyping basic arr prod chan_proto.
+From iris_examples.logrel_heaplang_sessions Require Export lty ltyping basic arr prod sum chan_proto.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.
@@ -72,5 +72,37 @@ Section properties.
     iExists v, c. iSplit=> //.
     iFrame "HA Hc".
   Qed.
+
+  Definition chanfst : val := λ: "c", send "c" #true;; "c".
+  Lemma ltyped_chanfst P1 P2:
+    ∅ ⊨ chanfst : chan (P1 <+++> P2) → chan P1.
+  Proof.
+    iIntros (vs) "_ /=".
+    rewrite /chanfst.
+    wp_apply wp_value.
+    iModIntro. iIntros (c) "Hc".
+    wp_pures.
+    rewrite {1}/lty_chan {1}/lty_car /lproto_select.
+    (* wp_apply (select_spec c true with "[Hc]"). *)
+  Admitted.
+
+  Definition chansnd : val := λ: "c", send "c" #false;; "c".
+  Lemma ltyped_chansnd P1 P2:
+    ∅ ⊨ chansnd : chan (P1 <+++> P2) → chan P2.
+  Proof.
+    iIntros (vs) "_ /=".
+    rewrite /chanfst.
+    wp_apply wp_value.
+    iModIntro. iIntros (c) "Hc".
+    wp_pures.
+    rewrite {1}/lty_chan {1}/lty_car /lproto_select.
+    (* wp_apply (select_spec c true with "[Hc]"). *)
+  Admitted.
+
+  Definition chanbranch : val := λ: "c", let b := recv "c" in if: b then InjL "c" else InjR "c".
+  Lemma ltyped_chanbranch P1 P2:
+    ∅ ⊨ chanbranch : chan (P1 <&&&> P2) → chan P1 + chan P2%lty.
+  Proof.
+  Admitted.
 
 End properties.

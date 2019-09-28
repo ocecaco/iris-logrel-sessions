@@ -17,10 +17,16 @@ Section protocols.
   Context `{heapG Σ, proto_chanG Σ}.
 
   Definition lproto_end : lproto Σ := Lproto END.
+
   Definition lproto_send (A : lty Σ) (P : lproto Σ) :=
     Lproto (<!> v, MSG v {{ A v }}; (P : iProto _))%proto.
   Definition lproto_recv (A : lty Σ) (P : lproto Σ) :=
     Lproto (<?> v, MSG v {{ A v }}; (P : iProto _))%proto.
+
+  Definition lproto_branch (P1 P2 : lproto Σ) :=
+    Lproto ((P1 : iProto _) <&> (P2 : iProto _))%proto.
+  Definition lproto_select (P1 P2 : lproto Σ) :=
+    Lproto ((P1 : iProto _) <+> (P2 : iProto _))%proto.
 
   (* TODO: Prove lemmas about this, showing that it works properly
   with respect to protocols built using send and receive. *)
@@ -30,3 +36,5 @@ End protocols.
 Notation "'END'" := (lproto_end) : lproto_scope.
 Notation "<!!> A ; P" := (lproto_send A P) (at level 20, A, P at level 200) : lproto_scope.
 Notation "<??> A ; P" := (lproto_recv A P) (at level 20, A, P at level 200) : lproto_scope.
+Infix "<+++>" := (lproto_select) (at level 60) : lproto_scope.
+Infix "<&&&>" := (lproto_branch) (at level 85) : lproto_scope.
