@@ -50,18 +50,21 @@ Section Double.
   invariant needs to ensure that only the process with the lowest
   value can access it. *)
 
-  Definition chan_begin (c : val) : iProp Σ :=
+  Definition chan_begin (c : val) (γ1 : gname) : iProp Σ :=
     (c ↣ <?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
-  Definition chan_half (c : val) : iProp Σ :=
-    (∃ x1 : nat, c ↣ <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
-  Definition chan_whole (c : val) : iProp Σ :=
-    (∃ x1 x2 : nat, c ↣ <!> MSG #(min x1 x2); END)%I.
-  Definition chan_done (c : val) : iProp Σ :=
-    (c ↣ END)%I.
+  Definition chan_half (c : val) (γ1 : gname) : iProp Σ :=
+    ( own γ1 (1/2)%Qp
+    ∗ ∃ x1 : nat, c ↣ <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
+  Definition chan_whole (c : val) (γ1 : gname) : iProp Σ :=
+    ( own γ1 1%Qp
+    ∗ ∃ x1 x2 : nat, c ↣ <!> MSG #(min x1 x2); END)%I.
+  Definition chan_done (c : val) (γ1 : gname) : iProp Σ :=
+    ( own γ1 1%Qp
+    ∗ c ↣ END)%I.
 
-  Definition chan_inv (γ1 : gname) (c : val) : iProp Σ :=
-    (chan_begin c ∨
-     chan_half c ∨
-     chan_whole c ∨
-     chan_done c)%I.
+  Definition chan_inv (c : val) (γ1 : gname) : iProp Σ :=
+    (chan_begin c γ1 ∨
+     chan_half c γ1 ∨
+     chan_whole c γ1 ∨
+     chan_done c γ1)%I.
 End Double.
