@@ -5,41 +5,37 @@ From iris.heap_lang Require Import notation proofmode.
 
 Section types.
   Context `{heapG Σ}.
-  Definition lty_rec1 (C : ltyC Σ -n> ltyC Σ) (rec : lty Σ) : lty Σ := Lty (λ w,
-    ▷ C rec w)%I.
-  Instance lty_rec1_contractive C : Contractive (lty_rec1 C).
-  Proof. solve_contractive. Qed.
-  Definition lty_rec (C : ltyC Σ -n> ltyC Σ) : lty Σ := fixpoint (lty_rec1 C).
-End types.
+  Definition lty_rec1 (C : ltyC Σ -> ltyC Σ) `{!Contractive C} (rec : lty Σ) : lty Σ :=
+    Lty (C rec)%I.
 
-(* To unfold a recursive type, we need to take a step. We thus define the
-unfold operator to be the identity function. *)
-Definition rec_unfold : val := λ: "x", "x".
+  Instance lty_rec1_contractive C `{!Contractive C} : Contractive (lty_rec1 C).
+  Proof. solve_contractive. Qed.
+
+  Definition lty_rec (C : ltyC Σ -> ltyC Σ) `{!Contractive C} : lty Σ :=
+    fixpoint (lty_rec1 C).
+End types.
 
 Section properties.
   Context `{heapG Σ}.
 
-  Global Instance lty_rec_ne n : Proper (dist n ==> dist n) (@lty_rec Σ).
-  Proof. intros C C' HC. apply fixpoint_ne. solve_proper. Qed.
-
-  Lemma lty_rec_unfold (C : ltyC Σ -n> ltyC Σ) : lty_rec C ≡ lty_rec1 C (lty_rec C).
-  Proof. apply fixpoint_unfold. Qed.
-
-  Lemma ltyped_fold Γ e (B : ltyC Σ -n> ltyC Σ) :
-    (Γ ⊨ e : B (lty_rec B)) → Γ ⊨ e : lty_rec B.
+  Lemma lty_rec_unfold (C : ltyC Σ → ltyC Σ) `{!Contractive C} :
+    lty_rec C ≡ C (lty_rec C).
   Proof.
-    intros He. iIntros (vs) "HΓ /=".
-    iPoseProof He as "He".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "HB".
-    by iEval (rewrite lty_rec_unfold /lty_car /=).
+    by rewrite /lty_rec {1}fixpoint_unfold {1}/lty_rec1.
   Qed.
 
-  Lemma ltyped_unfold Γ e (B : ltyC Σ -n> ltyC Σ) :
-    (Γ ⊨ e : lty_rec B) → Γ ⊨ rec_unfold e : B (lty_rec B).
+  (* This could be generalized to a subtyping rule. *)
+  Lemma ltyped_equiv Γ e A1 A2:
+    A1 ≡ A2 → (Γ ⊨ e : A1) →
+    Γ ⊨ e : A2.
   Proof.
-    intros He. iIntros (vs) "HΓ /=".
-    iPoseProof He as "He".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "HB".
-    iEval (rewrite lty_rec_unfold /lty_car /=) in "HB". by wp_lam.
+    intros Heq HA1. iIntros (vs) "HΓ".
+    iPoseProof HA1 as "HA1".
+    iSpecialize ("HA1" with "HΓ").
+    wp_apply (wp_wand with "HA1").
+    iIntros (v).
+    iPoseProof Heq as "[Heq1 _]".
+    iApply "Heq1".
   Qed.
+
 End properties.
