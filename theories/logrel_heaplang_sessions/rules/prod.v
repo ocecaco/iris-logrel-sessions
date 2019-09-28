@@ -20,11 +20,12 @@ Section properties.
 
   Lemma ltyped_pair Γ Γ1 Γ2 e1 e2 A1 A2 :
     env_split Γ Γ1 Γ2 →
-    (Γ1 ⊨ e1 : A1) -∗
-    (Γ2 ⊨ e2 : A2) -∗
+    (Γ1 ⊨ e1 : A1) → (Γ2 ⊨ e2 : A2) →
     Γ ⊨ (e1,e2) : A1 * A2.
   Proof.
-    intros Hsplit. iIntros "#H1 #H2" (vs) "!> HΓ /=".
+    intros Hsplit H1 H2. iIntros (vs) "HΓ /=".
+    iPoseProof H1 as "H1".
+    iPoseProof H2 as "H2".
     iPoseProof (Hsplit with "HΓ") as "[HΓ1 HΓ2]".
     wp_apply (wp_wand with "(H2 [HΓ2 //])"); iIntros (w2) "HA2".
     wp_apply (wp_wand with "(H1 [HΓ1 //])"); iIntros (w1) "HA1".
@@ -38,7 +39,7 @@ Section properties.
   Lemma ltyped_split A1 A2 B:
     ∅ ⊨ split : (A1 * A2 → (A1 → A2 → B) → B)%lty.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
     iDestruct "Hv" as (w1 w2 ->) "[Hw1 Hw2]".

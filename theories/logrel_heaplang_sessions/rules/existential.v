@@ -19,17 +19,19 @@ Section properties.
   Global Instance lty_exist_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ).
   Proof. solve_proper. Qed.
 
-  Lemma ltyped_pack Γ e C A : (Γ ⊨ e : C A) -∗ Γ ⊨ e : ∃ A, C A.
+  Lemma ltyped_pack Γ e C A :
+    (Γ ⊨ e : C A) → Γ ⊨ e : ∃ A, C A.
   Proof.
-    iIntros "#H" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H [HΓ //])"); iIntros (w) "HB". by iExists A.
+    intros He. iIntros (vs) "HΓ /=".
+    iPoseProof He as "He".
+    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "HB". by iExists A.
   Qed.
 
   Definition unpack : val := λ: "exist" "f", "f" #() "exist".
-  Lemma ltyped_unpack Γ C B :
-    Γ ⊨ unpack : (∃ A, C A) → (∀ A, C A → B) → B.
+  Lemma ltyped_unpack C B :
+    ∅ ⊨ unpack : (∃ A, C A) → (∀ A, C A → B) → B.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value. iIntros (v) "Hv".
     iDestruct "Hv" as (A) "Hv".
     rewrite /unpack. wp_pures.

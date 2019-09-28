@@ -25,7 +25,7 @@ Section properties.
   Lemma ltyped_alloc A :
     ∅ ⊨ refalloc : (A → ref A)%lty.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv". rewrite /refalloc. wp_pures.
     wp_alloc l as "Hl".
@@ -42,7 +42,7 @@ Section properties.
   Lemma ltyped_load A :
     ∅ ⊨ refload : (ref A → A * ref any)%lty.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
     iDestruct "Hv" as (l w ->) "[Hl Hw]".
@@ -59,7 +59,7 @@ Section properties.
   Lemma ltyped_store A B:
     ∅ ⊨ refstore : (ref A → B → ref B)%lty.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (v) "Hv".
     iDestruct "Hv" as (l old ->) "[Hl Hold]".

@@ -19,9 +19,11 @@ Section properties.
   Proof. solve_proper. Qed.
 
   Lemma ltyped_injl Γ e A1 A2:
-    (Γ ⊨ e : A1) -∗ Γ ⊨ InjL e : A1 + A2.
+    (Γ ⊨ e : A1) → Γ ⊨ InjL e : A1 + A2.
   Proof.
-    iIntros "#HA" (vs) "!> HΓ /=".
+    intros HA.
+    iIntros (vs) "HΓ /=".
+    iPoseProof HA as "HA".
     wp_apply (wp_wand with "(HA [HΓ //])").
     iIntros (v) "HA'".
     wp_pures.
@@ -29,9 +31,10 @@ Section properties.
   Qed.
 
   Lemma ltyped_injr Γ e A1 A2:
-    (Γ ⊨ e : A2) -∗ Γ ⊨ InjR e : A1 + A2.
+    (Γ ⊨ e : A2) → Γ ⊨ InjR e : A1 + A2.
   Proof.
-    iIntros "#HA" (vs) "!> HΓ /=".
+    intros HA. iIntros (vs) "HΓ /=".
+    iPoseProof HA as "HA".
     wp_apply (wp_wand with "(HA [HΓ //])").
     iIntros (v) "HA'".
     wp_pures.
@@ -44,7 +47,7 @@ Section properties.
   Lemma ltyped_paircase A1 A2 B:
     ∅ ⊨ paircase : (A1 + A2 → (A1 → B) → (A2 → B) → B)%lty.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (p) "Hp".
     rewrite /paircase. wp_pures.

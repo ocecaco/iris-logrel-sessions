@@ -17,19 +17,24 @@ Section properties.
   Global Instance lty_arr_ne : NonExpansive2 (@lty_arr Σ _).
   Proof. solve_proper. Qed.
 
-  Lemma ltyped_var Γ (x : string) A : Γ !! x = Some A → Γ ⊨ x : A.
+  Lemma ltyped_var Γ (x : string) A :
+    Γ !! x = Some A → Γ ⊨ x : A.
   Proof.
-    iIntros (HΓx vs) "!> HΓ /=".
+    iIntros (HΓx vs) "HΓ /=".
     iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "HA"; first done.
     by iApply wp_value.
   Qed.
 
   Lemma ltyped_app Γ Γ1 Γ2 e1 e2 A1 A2 :
-    env_split Γ Γ1 Γ2 → (Γ1 ⊨ e1 : A1 → A2) -∗ (Γ2 ⊨ e2 : A1) -∗ Γ ⊨ e1 e2 : A2.
+    env_split Γ Γ1 Γ2 →
+    (Γ1 ⊨ e1 : A1 → A2) → (Γ2 ⊨ e2 : A1) →
+    Γ ⊨ e1 e2 : A2.
   Proof.
-    intros Hsplit.
-    iIntros "#H1 #H2" (vs) "!> HΓ /=".
+    intros Hsplit H1 H2.
+    iIntros (vs) "HΓ /=".
     iPoseProof (Hsplit with "HΓ") as "[HΓ1 HΓ2]".
+    iPoseProof H1 as "H1".
+    iPoseProof H2 as "H2".
     wp_apply (wp_wand with "(H2 [HΓ2 //])").
     iIntros (v) "HA1".
     wp_apply (wp_wand with "(H1 [HΓ1 //])").
@@ -37,12 +42,14 @@ Section properties.
   Qed.
 
   Lemma ltyped_lam Γ x e A1 A2 :
-    (binder_insert x A1 Γ ⊨ e : A2) -∗
+    (binder_insert x A1 Γ ⊨ e : A2) →
     Γ ⊨ (λ: x, e) : A1 → A2.
   Proof.
-    iIntros "#H" (vs) "!> HΓ /=". wp_pures.
+    intros He.
+    iPoseProof He as "He".
+    iIntros (vs) "HΓ /=". wp_pures.
     iIntros (v) "HA1". wp_pures.
-    iSpecialize ("H" $! (binder_insert x v vs) with "[HΓ HA1]").
+    iSpecialize ("He" $! (binder_insert x v vs) with "[HΓ HA1]").
     { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
   Qed.
@@ -53,12 +60,13 @@ Section properties.
   variables. *)
   Lemma ltyped_lam_copy Γ Γ' x e A1 A2:
     env_copy Γ Γ' →
-    (Γ' ⊨ (λ: x, e) : A1 → A2) -∗
+    (Γ' ⊨ (λ: x, e) : A1 → A2) →
     Γ ⊨ (λ: x, e) : copy (A1 → A2).
   Proof.
-    intros Hcopy. iIntros "#H" (vs) "!> HΓ /=".
+    intros Hcopy He. iIntros (vs) "HΓ /=".
+    iPoseProof He as "He".
     iPoseProof (Hcopy with "HΓ") as "#HΓ'".
-    iPoseProof ("H" with "HΓ'") as "H'".
+    iPoseProof ("He" with "HΓ'") as "H'".
   Admitted.
 
 End properties.

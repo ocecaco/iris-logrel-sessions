@@ -28,11 +28,12 @@ Section properties.
   Qed.
 
   Lemma ltyped_copy_sub Γ e A:
-    (Γ ⊨ e : copy A) -∗ Γ ⊨ e : A.
+    (Γ ⊨ e : copy A) → Γ ⊨ e : A.
   Proof.
-    iStartProof.
-    iIntros "#H" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H [HΓ //])"). iIntros (v) "Hcopy".
+    intros He.
+    iIntros (vs) "HΓ /=".
+    iPoseProof He as "He".
+    wp_apply (wp_wand with "(He [HΓ //])"). iIntros (v) "Hcopy".
     iDestruct "Hcopy" as "#HA".
     iApply "HA".
   Qed.
@@ -40,10 +41,11 @@ Section properties.
   (* If the entire type is copy, then of course so is every value of
   that type. *)
   Lemma ltyped_copy_reflect Γ e A:
-    LTyCopy A → (Γ ⊨ e : A) -∗ Γ ⊨ e : copy A.
+    LTyCopy A → (Γ ⊨ e : A) → Γ ⊨ e : copy A.
   Proof.
-    intros Hcopy. iIntros "#H" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H [HΓ //])"). iIntros (v) "#HA".
+    intros Hcopy He. iIntros (vs) "HΓ /=".
+    iPoseProof He as "He".
+    wp_apply (wp_wand with "(He [HΓ //])"). iIntros (v) "#HA".
     iModIntro. iApply "HA".
   Qed.
 

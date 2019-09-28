@@ -23,7 +23,7 @@ Section properties.
   Lemma ltyped_chanalloc P:
     ∅ ⊨ chanalloc : () → (chan P * chan (lproto_dual P)).
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (u) "Hu".
     rewrite /lty_unit /lty_car.
@@ -43,7 +43,7 @@ Section properties.
   Lemma ltyped_chansend A P:
     ∅ ⊨ chansend : chan (lproto_send A P) → A → chan P.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (c) "Hc".
     rewrite /chansend. wp_pures.
@@ -63,7 +63,7 @@ Section properties.
   Lemma ltyped_chanrecv A P:
     ∅ ⊨ chanrecv : chan (lproto_recv A P) → A * chan P.
   Proof.
-    iIntros (vs) "!> HΓ /=".
+    iIntros (vs) "HΓ /=".
     wp_apply wp_value.
     iIntros (c) "Hc".
     rewrite /lty_chan /lty_car.

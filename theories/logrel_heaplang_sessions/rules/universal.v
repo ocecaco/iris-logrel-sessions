@@ -19,16 +19,23 @@ Section properties.
   Global Instance lty_forall_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _).
   Proof. solve_proper. Qed.
 
-  Lemma ltyped_tlam Γ e C : (∀ A, Γ ⊨ e : C A) -∗ Γ ⊨ (λ: <>, e) : ∀ A, C A.
+  Lemma ltyped_tlam Γ e C :
+    (∀ A, Γ ⊨ e : C A) → Γ ⊨ (λ: <>, e) : ∀ A, C A.
   Proof.
-    iIntros "#H" (vs) "!> HΓ /=". wp_pures.
-    iIntros (A) "/=". wp_pures. by iApply ("H" $! A).
+    intros He. iIntros (vs) "HΓ /=". wp_pures.
+    iIntros (A) "/=". wp_pures.
+    iPoseProof He as "He".
+    iSpecialize ("He" $! vs with "HΓ").
+    wp_apply (wp_wand with "He").
+    iIntros (v) "H". eauto.
   Qed.
 
-  Lemma ltyped_tapp Γ e C A : (Γ ⊨ e : ∀ A, C A) -∗ Γ ⊨ e #() : C A.
+  Lemma ltyped_tapp Γ e C A :
+    (Γ ⊨ e : ∀ A, C A) → Γ ⊨ e #() : C A.
   Proof.
-    iIntros "#H" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H [HΓ //])"); iIntros (w) "HB". by iApply ("HB" $! A).
+    intros He. iIntros (vs) "HΓ /=".
+    iPoseProof He as "He".
+    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "HB". by iApply ("HB" $! A).
   Qed.
 
 End properties.
