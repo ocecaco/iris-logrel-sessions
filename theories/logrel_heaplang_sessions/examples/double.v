@@ -33,4 +33,11 @@ Section Double.
   Proof.
     iIntros (Φ) "Hc HΦ".
   Admitted.
+
+  (* We need to prove using ghost state that at most two receives will
+  be performed in the beginning. Afterwards, we might be able to use
+  an agreement RA to have the two processes communicate the value they
+  have received and to determine who has the lowest one. Then the
+  invariant needs to ensure that only the process with the lowest
+  value can access it. *)
 End Double.
