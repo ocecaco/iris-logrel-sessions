@@ -40,4 +40,10 @@ Section Double.
   have received and to determine who has the lowest one. Then the
   invariant needs to ensure that only the process with the lowest
   value can access it. *)
+
+  Definition chan_inv (c : val) : iProp Σ :=
+    ((c ↣ <?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END) ∨
+     (∃ x1 : nat, c ↣ <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END) ∨
+     (∃ x1 x2 : nat, c ↣ <!> MSG #(min x1 x2); END) ∨
+     (c ↣ END))%I.
 End Double.
