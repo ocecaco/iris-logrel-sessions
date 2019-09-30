@@ -1,6 +1,7 @@
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode lib.par.
+From iris.algebra Require Import agree frac csum excl.
 From actris.channel Require Import proto_channel channel proofmode.
 
 Definition prog (c : val) : expr :=
@@ -22,8 +23,16 @@ Definition prog (c : val) : expr :=
     if: "x2" < "x1" then send "c" "x2" else Skip
   ).
 
+Section GhostState.
+  Definition doubleR := fracR.
+  Class doubleG Σ := { double_inG :> inG Σ doubleR }.
+  Definition doubleΣ : gFunctors := #[GFunctor doubleR].
+  Global Instance subG_doubleΣ {Σ} : subG doubleΣ Σ → doubleG Σ.
+  Proof. solve_inG. Qed.
+End GhostState.
+
 Section Double.
-  Context `{heapG Σ, proto_chanG Σ}.
+  Context `{heapG Σ, proto_chanG Σ, doubleG Σ}.
 
   Definition prog_proto : iProto Σ :=
     (<?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%proto.
@@ -40,4 +49,22 @@ Section Double.
   have received and to determine who has the lowest one. Then the
   invariant needs to ensure that only the process with the lowest
   value can access it. *)
+
+  Definition chan_begin (c : val) (γ1 : gname) : iProp Σ :=
+    (c ↣ <?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
+  Definition chan_half (c : val) (γ1 : gname) : iProp Σ :=
+    ( own γ1 (1/2)%Qp
+    ∗ ∃ x1 : nat, c ↣ <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
+  Definition chan_whole (c : val) (γ1 : gname) : iProp Σ :=
+    ( own γ1 1%Qp
+    ∗ ∃ x1 x2 : nat, c ↣ <!> MSG #(min x1 x2); END)%I.
+  Definition chan_done (c : val) (γ1 : gname) : iProp Σ :=
+    ( own γ1 1%Qp
+    ∗ c ↣ END)%I.
+
+  Definition chan_inv (c : val) (γ1 : gname) : iProp Σ :=
+    (chan_begin c γ1 ∨
+     chan_half c γ1 ∨
+     chan_whole c γ1 ∨
+     chan_done c γ1)%I.
 End Double.
