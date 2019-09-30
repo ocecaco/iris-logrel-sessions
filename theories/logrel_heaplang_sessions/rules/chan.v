@@ -111,25 +111,22 @@ Section properties.
     iExact "Hc".
   Qed.
 
-  (* TODO: Is there a way to do this without the continuation passing style?*)
-  Definition chanbranch : val := λ: "c" "h1" "h2",
-    let b := recv "c" in if: b then "h1" "c" else "h2" "c".
-  Lemma ltyped_chanbranch P1 P2 A:
-    ∅ ⊨ chanbranch : chan (P1 <&&&> P2) → (chan P1 ⊸ A) ⊸ (chan P2 ⊸ A) ⊸ A.
+  Definition chanbranch : val := λ: "c",
+    let b := recv "c" in if: b then InjL "c" else InjR "c".
+  Lemma ltyped_chanbranch P1 P2:
+    ∅ ⊨ chanbranch : chan (P1 <&&&> P2) → chan P1 + chan P2.
   Proof.
     iIntros (vs) "_ /=".
     wp_apply wp_value.
     iModIntro. iIntros (c) "Hc".
     rewrite /chanbranch. wp_pures.
-    iIntros (h1) "Hh1". wp_pures.
-    iIntros (h2) "Hh2". wp_pures.
     rewrite {1}/lty_chan {1}/lproto_branch {1}/lty_car {1}/lproto_car.
     wp_apply (branch_spec with "[Hc]").
     { iExact "Hc". }
     iIntros (b) "Hc".
     destruct b; iDestruct "Hc" as "[Hc _]"; wp_pures.
-    - wp_apply "Hh1". iExact "Hc".
-    - wp_apply "Hh2". iExact "Hc".
+    - iLeft. iExists c. iSplit=> //.
+    - iRight. iExists c. iSplit=> //.
   Qed.
 
 End properties.
