@@ -28,6 +28,11 @@ Section properties.
     iIntros "#H". iModIntro. iExact "H".
   Qed.
 
+  (* This rule could be generalized by defining a semantic type for
+  "atomic functions", which are single-argument functions whose body
+  is guaranteed to perform one atomic step. Such functions could be
+  freely passed around and stored in data structures. Then we would
+  have a function atomicaccess : atomic A → (A -a-> B) → B *)
   Definition fetchandadd : val := λ: "r" "inc", FAA "r" "inc".
   Lemma ltyped_copy_sub:
     ∅ ⊨ fetchandadd : atomic (lty_ref lty_int) → lty_int → lty_int.
