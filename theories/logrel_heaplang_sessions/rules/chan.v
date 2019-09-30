@@ -82,22 +82,34 @@ Section properties.
     wp_apply wp_value.
     iModIntro. iIntros (c) "Hc".
     wp_pures.
-    rewrite {1}/lty_chan {1}/lty_car /lproto_select.
-    (* wp_apply (select_spec c true with "[Hc]"). *)
-  Admitted.
+    wp_bind (send _ _).
+    wp_apply (select_spec with "[Hc]").
+    { rewrite /lty_chan /lproto_select /lty_car /lproto_car /=.
+      iSplitL.
+      - iApply "Hc".
+      - done. }
+    iIntros "Hc". wp_pures.
+    iExact "Hc".
+  Qed.
 
   Definition chansnd : val := λ: "c", send "c" #false;; "c".
   Lemma ltyped_chansnd P1 P2:
     ∅ ⊨ chansnd : chan (P1 <+++> P2) → chan P2.
   Proof.
     iIntros (vs) "_ /=".
-    rewrite /chanfst.
+    rewrite /chansnd.
     wp_apply wp_value.
     iModIntro. iIntros (c) "Hc".
     wp_pures.
-    rewrite {1}/lty_chan {1}/lty_car /lproto_select.
-    (* wp_apply (select_spec c true with "[Hc]"). *)
-  Admitted.
+    wp_bind (send _ _).
+    wp_apply (select_spec with "[Hc]").
+    { rewrite /lty_chan /lproto_select /lty_car /lproto_car /=.
+      iSplitL.
+      - iApply "Hc".
+      - done. }
+    iIntros "Hc". wp_pures.
+    iExact "Hc".
+  Qed.
 
   Definition chanbranch : val := λ: "c", let b := recv "c" in if: b then InjL "c" else InjR "c".
   Lemma ltyped_chanbranch P1 P2:
