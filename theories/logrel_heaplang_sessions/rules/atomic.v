@@ -6,6 +6,10 @@ From iris.heap_lang Require Import notation proofmode.
 Section types.
   Context `{heapG Σ}.
 
+  (* TODO: This is probably not very useful in its current form, since
+  we don't know anything about the namespace that is used for the
+  invariant. This probably makes the invariant difficult to open when
+  nesting atomics or when there are other invariants. *)
   Definition lty_atomic (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ N : namespace, inv N (A w))%I.
 End types.
