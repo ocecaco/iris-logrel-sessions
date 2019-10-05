@@ -145,17 +145,13 @@ Section Double.
         wp_apply (recv_proto_spec with "Hd2recv").
         iIntros (m) "Hd2recv #Hγ2 /=". wp_pures.
 
-        case_bool_decide.
-
+        case_bool_decide; admit.
       + admit.
-      + (* Impossible, since this means our one-shot has already been shot *)
-        iDestruct "Hc" as "[Hc _]".
-        iCombine "Hcredit1 Hc" as "Hc".
-        iExFalso.
-        iDestruct (own_valid with "Hc") as %Hvalid.
+      + (* Impossible, since this means our one-shot has already been fired *)
         admit.
-      + (* Impossible, since this means our one-shot has already been shot *)
+      + (* Impossible, since this means our one-shot has already been fired *)
         admit.
+    - admit.
   Admitted.
 
   (* We need to prove using ghost state that at most two receives will
