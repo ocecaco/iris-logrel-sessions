@@ -14,7 +14,6 @@ theories/logrel_heaplang_sessions/env.v
 theories/logrel_heaplang_sessions/split.v
 
 theories/logrel_heaplang_sessions/rules/copy.v
-theories/logrel_heaplang_sessions/rules/atomic.v
 theories/logrel_heaplang_sessions/rules/basic.v
 theories/logrel_heaplang_sessions/rules/arr.v
 theories/logrel_heaplang_sessions/rules/prod.v
@@ -25,6 +24,7 @@ theories/logrel_heaplang_sessions/rules/rec.v
 theories/logrel_heaplang_sessions/rules/universal.v
 
 theories/logrel_heaplang_sessions/rules/ref.v
+theories/logrel_heaplang_sessions/rules/weakref.v
 
 theories/logrel_heaplang_sessions/rules/chan_proto.v
 theories/logrel_heaplang_sessions/rules/chan.v
