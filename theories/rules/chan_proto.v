@@ -32,6 +32,12 @@ Section lproto_ofe.
 
   Global Instance lproto_car_proper : Proper ((≡) ==> (≡)) lproto_car.
   Proof. intros A A' H. exact H. Qed.
+
+  Global Instance Lproto_ne : NonExpansive Lproto.
+  Proof. solve_proper. Qed.
+
+  Global Instance Lproto_proper : Proper ((≡) ==> (≡)) Lproto.
+  Proof. solve_proper. Qed.
 End lproto_ofe.
 
 Arguments lprotoC : clear implicits.
@@ -57,7 +63,7 @@ Section protocols.
     Lproto (C rec).
 
   Instance lproto_rec1_contractive C `{!Contractive C} : Contractive (lproto_rec1 C).
-  Proof. Admitted.
+  Proof. solve_contractive. Qed.
 
   Definition lproto_rec (C : lprotoC Σ → lprotoC Σ) `{!Contractive C} : lproto Σ :=
     fixpoint (lproto_rec1 C).
