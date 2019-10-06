@@ -32,4 +32,5 @@ theories/rules/chan.v
 theories/rules/mutex.v
 
 # theories/rules/operators.v
+theories/examples/doubleref.v
 theories/examples/double.v
