@@ -1,4 +1,4 @@
-From iris_examples.logrel_heaplang_sessions Require Export lty ltyping arr prod.
+From logrel_heaplang_sessions Require Export lty ltyping arr prod.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode.

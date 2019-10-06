@@ -1,4 +1,4 @@
--Q theories iris_examples
+-Q theories logrel_heaplang_sessions
 -Q actris/theories actris
 # We sometimes want to locally override notation and there is no good way to do that with scopes.
 -arg -w -arg -notation-overridden
@@ -7,29 +7,29 @@
 # change_no_check does not exist yet in 8.9.
 -arg -w -arg -convert_concl_no_check
 
-theories/logrel_heaplang_sessions/lty.v
-theories/logrel_heaplang_sessions/ltyping.v
-theories/logrel_heaplang_sessions/ltyping_safety.v
-theories/logrel_heaplang_sessions/env.v
-theories/logrel_heaplang_sessions/split.v
+theories/lty.v
+theories/ltyping.v
+theories/ltyping_safety.v
+theories/env.v
+theories/split.v
 
-theories/logrel_heaplang_sessions/rules/copy.v
-theories/logrel_heaplang_sessions/rules/basic.v
-theories/logrel_heaplang_sessions/rules/arr.v
-theories/logrel_heaplang_sessions/rules/prod.v
-theories/logrel_heaplang_sessions/rules/sum.v
-theories/logrel_heaplang_sessions/rules/any.v
-theories/logrel_heaplang_sessions/rules/existential.v
-theories/logrel_heaplang_sessions/rules/rec.v
-theories/logrel_heaplang_sessions/rules/universal.v
+theories/rules/copy.v
+theories/rules/basic.v
+theories/rules/arr.v
+theories/rules/prod.v
+theories/rules/sum.v
+theories/rules/any.v
+theories/rules/existential.v
+theories/rules/rec.v
+theories/rules/universal.v
 
-theories/logrel_heaplang_sessions/rules/ref.v
-theories/logrel_heaplang_sessions/rules/weakref.v
+theories/rules/ref.v
+theories/rules/weakref.v
 
-theories/logrel_heaplang_sessions/rules/chan_proto.v
-theories/logrel_heaplang_sessions/rules/chan.v
+theories/rules/chan_proto.v
+theories/rules/chan.v
 
-theories/logrel_heaplang_sessions/rules/mutex.v
+theories/rules/mutex.v
 
-# theories/logrel_heaplang_sessions/rules/operators.v
-theories/logrel_heaplang_sessions/examples/double.v
+# theories/rules/operators.v
+theories/examples/double.v
