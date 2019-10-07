@@ -18,17 +18,17 @@ Definition prog_simpler (prize : loc) (l : loc) : expr :=
 Section Proofs.
   Context `{heapG Σ}.
 
-  Lemma wp_prog_simpler (prize l : loc) (k : nat):
-    ({{{ prize ↦ #0 ∗ l ↦ #k }}}
+  Lemma wp_prog_simpler (N : namespace) (prize l : loc) (k : nat):
+    (inv N (l ↦ #k) -∗
+     {{{ prize ↦ #0 }}}
        prog_simpler prize l
-     {{{ RET #(); prize ↦ #1 ∗ l ↦ #k }}})%I.
+     {{{ RET #(); prize ↦ #1 }}})%I.
   Proof.
-    iIntros (Φ) "!> [Hprize Hl] HΦ".
-    iMod (inv_alloc nroot with "Hl") as "#Hinv".
+    iIntros "#Hinv" (Φ) "!> Hprize HΦ".
     rewrite /prog_simpler.
     wp_pures.
     wp_bind (par _ _)%E.
-    wp_apply (wp_par (λ _, True%I) (λ _, True%I)).
+    wp_apply (wp_par (λ _, True)%I (λ _, True)%I).
     - (* Thread 1 *)
       wp_bind (! _)%E.
       iInv "Hinv" as ">Hl" "Hclose".
@@ -42,7 +42,7 @@ Section Proofs.
       + (* n ≠ 0 *)
         done.
 
-    - (* Thread 2*)
+    - (* Thread 2 *)
       wp_bind (! _)%E.
       iInv "Hinv" as ">Hl" "Hclose".
       wp_load.
