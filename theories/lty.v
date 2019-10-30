@@ -35,6 +35,11 @@ Section lty_ofe.
   Proof. by intros A A' ? w ? <-. Qed.
   Global Instance lty_car_proper : Proper ((≡) ==> (=) ==> (≡)) lty_car.
   Proof. by intros A A' ? w ? <-. Qed.
+
+  Global Instance lty_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) Lty.
+  Proof. by intros ???. Qed.
+  Global Instance lty_proper : Proper (pointwise_relation _ (≡) ==> (≡)) Lty.
+  Proof. by intros ???. Qed.
 End lty_ofe.
 
 Arguments ltyC : clear implicits.

@@ -18,10 +18,23 @@ Infix "⊸" := lty_arr (at level 20, right associativity) : lty_scope.
 Section properties.
   Context `{heapG Σ}.
 
-  (* TODO: Make the arrow properly contractive (i.e. make it
-  contractive in the second argument as well) *)
-  Global Instance lty_arr_contractive n : Proper (dist_later n ==> dist n ==> dist n) lty_arr.
-  Proof. solve_contractive. Qed.
+  (* TODO: There's probably a cleaner way to do this *)
+  Global Instance lty_arr_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) lty_arr.
+  Proof.
+    intros A A' ? B B' ?.
+    apply lty_ne.
+    intros f.
+    f_equiv.
+    intros w.
+    f_equiv.
+    - by f_contractive.
+    - apply wp_contractive.
+      { apply _. }
+      intros q.
+      destruct n as [|n'].
+      + done.
+      + by simpl.
+  Qed.
 
   Global Instance lty_arr_ne : NonExpansive2 (@lty_arr Σ _).
   Proof. solve_proper. Qed.
