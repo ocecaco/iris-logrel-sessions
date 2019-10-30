@@ -65,4 +65,24 @@ Section Tests.
   Proof. solve_contractive. Qed.
   Definition lty_chan_rec : lty Σ := lty_rec chan_rec.
 
+  Definition send_rec (P : lproto Σ) : lproto Σ := (<!!> lty_int; P).
+  Instance send_rec_contractive : Contractive send_rec.
+  Proof. solve_contractive. Qed.
+  Definition lproto_send_rec : lproto Σ := lproto_rec send_rec.
+
+  Definition recv_rec (P : lproto Σ) : lproto Σ := (<??> lty_int; P).
+  Instance recv_rec_contractive : Contractive recv_rec.
+  Proof. solve_contractive. Qed.
+  Definition lproto_recv_rec : lproto Σ := lproto_rec recv_rec.
+
+  Definition branch_rec (P : lproto Σ) : lproto Σ := (P <&&&> P).
+  Instance branch_rec_contractive : Contractive branch_rec.
+  Proof. solve_contractive. Qed.
+  Definition lproto_branch_rec : lproto Σ := lproto_rec branch_rec.
+
+  Definition select_rec (P : lproto Σ) : lproto Σ := (P <+++> P).
+  Instance select_rec_contractive : Contractive select_rec.
+  Proof. solve_contractive. Qed.
+  Definition lproto_select_rec : lproto Σ := lproto_rec select_rec.
+
 End Tests.
