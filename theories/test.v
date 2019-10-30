@@ -50,10 +50,16 @@ Section Tests.
   Definition lty_exist_rec : lty Σ := lty_rec exist_rec.
 
   (* universal is contractive *)
-  (* Definition forall_rec (X : lty Σ) := (∀ Y, X)%lty. *)
-  (* Instance forall_rec_contractive : Contractive forall_rec. *)
-  (* Proof. solve_contractive. Qed. *)
-  (* Definition lty_forall_rec : lty Σ := lty_rec forall_rec. *)
+  Definition forall_rec (X : lty Σ) := (∀ Y, X)%lty.
+  Instance forall_rec_contractive : Contractive forall_rec.
+  Proof.
+    intros n A A' Heq.
+    rewrite /forall_rec.
+    apply lty_forall_contractive.
+    intros w.
+    apply Heq.
+  Qed.
+  Definition lty_forall_rec : lty Σ := lty_rec forall_rec.
 
   (* mutex is contractive *)
   Definition lty_mutex_rec : lty Σ := lty_rec lty_mutex.
