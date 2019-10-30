@@ -14,6 +14,9 @@ Notation "'chan' A" := (lty_chan A) (at level 10) : lty_scope.
 Section properties.
   Context `{heapG Σ, proto_chanG Σ}.
 
+  Global Instance lty_chan_ne : NonExpansive lty_chan.
+  Proof. solve_proper. Qed.
+
   (* TODO: Not sure why I need to put the let here, but otherwise I
   can't get rid of the modality in the premises, becaues I don't have
   a WP as my goal. *)

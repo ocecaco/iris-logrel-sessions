@@ -56,4 +56,4 @@ Class LTyBinOp `{Σ : gFunctors} (op : bin_op) (A1 A2 B : lty Σ) :=
 
 (* Copy types *)
 Class LTyCopy `{Σ : gFunctors} (A : lty Σ) :=
-  lty_copy v :> Persistent (A v).
+  lty_copy_pers v :> Persistent (A v).

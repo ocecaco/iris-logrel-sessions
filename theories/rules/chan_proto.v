@@ -52,10 +52,12 @@ Section protocols.
   Definition lproto_recv (A : lty Σ) (P : lproto Σ) :=
     Lproto (<?> v, MSG v {{ A v }}; (P : iProto _))%proto.
 
+
   Definition lproto_branch (P1 P2 : lproto Σ) :=
     Lproto ((P1 : iProto _) <&> (P2 : iProto _))%proto.
   Definition lproto_select (P1 P2 : lproto Σ) :=
     Lproto ((P1 : iProto _) <+> (P2 : iProto _))%proto.
+
 
   Definition lproto_rec1 (C : lprotoC Σ → lprotoC Σ)
              `{!Contractive C}
@@ -72,6 +74,88 @@ Section protocols.
   with respect to protocols built using send and receive. *)
   Definition lproto_dual (P : lproto Σ) : lproto Σ := Lproto (iProto_dual (P : iProto _)).
 End protocols.
+
+Section Propers.
+  Context `{heapG Σ, proto_chanG Σ}.
+
+  (* TODO: Reduce proof duplication *)
+  Lemma lproto_send_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_send Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_send.
+    apply Lproto_ne.
+    apply iProto_message_ne; simpl; try done.
+  Qed.
+
+  Lemma lproto_send_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_send Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_send.
+    apply Lproto_ne.
+    apply iProto_message_contractive; simpl; try done.
+    intros v.
+    destruct n as [|n]; try done.
+    apply H1.
+  Qed.
+
+  Lemma lproto_recv_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_recv Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_recv.
+    apply Lproto_ne.
+    apply iProto_message_ne; simpl; try done.
+  Qed.
+
+  Lemma lproto_recv_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_recv Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_recv.
+    apply Lproto_ne.
+    apply iProto_message_contractive; simpl; try done.
+    intros v.
+    destruct n as [|n]; try done.
+    apply H1.
+  Qed.
+
+  Lemma lproto_branch_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_branch Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_branch.
+    apply Lproto_ne.
+    apply iProto_message_ne; simpl; try done.
+    intros v. destruct v; done.
+  Qed.
+
+  Lemma lproto_branch_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_branch Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_branch.
+    apply Lproto_ne.
+    apply iProto_message_contractive; simpl; try done.
+    intros v.
+    destruct v; destruct n as [|n]; try done.
+  Qed.
+
+  Lemma lproto_select_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_select Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_select.
+    apply Lproto_ne.
+    apply iProto_message_ne; simpl; try done.
+    intros v. destruct v; done.
+  Qed.
+
+  Lemma lproto_select_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_select Σ).
+  Proof.
+    intros A A' H1 P P' H2.
+    rewrite /lproto_select.
+    apply Lproto_ne.
+    apply iProto_message_contractive; simpl; try done.
+    intros v.
+    destruct v; destruct n as [|n]; try done.
+  Qed.
+
+End Propers.
 
 Notation "'END'" := (lproto_end) : lproto_scope.
 Notation "<!!> A ; P" := (lproto_send A P) (at level 20, A, P at level 200) : lproto_scope.

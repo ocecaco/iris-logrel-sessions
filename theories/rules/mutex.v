@@ -31,6 +31,11 @@ Section properties.
   Global Instance lty_mutex_ne : NonExpansive (@lty_mutex Σ _ _).
   Proof. solve_proper. Qed.
 
+  Global Instance lty_mutexguard_contractive : Contractive (@lty_mutexguard Σ _ _).
+  Proof. solve_contractive. Qed.
+  Global Instance lty_mutexguard_ne : NonExpansive (@lty_mutexguard Σ _ _).
+  Proof. solve_proper. Qed.
+
   Definition mutexalloc : val := λ: "x", (newlock #(), ref "x").
   Lemma ltyped_mutexalloc A:
      ∅ ⊨ mutexalloc : A → mutex A.
