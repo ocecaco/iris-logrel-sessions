@@ -62,14 +62,7 @@ Section Tests.
   (* recursive channels *)
   Definition chan_rec (X : lty Σ) := lty_chan (<??> X; END).
   Instance chan_rec_contractive : Contractive chan_rec.
-  Proof.
-    intros n A A' Heq.
-    rewrite /chan_rec.
-    apply lty_chan_ne.
-    apply lproto_recv_contractive.
-    { apply Heq. }
-    done.
-  Qed.
+  Proof. solve_contractive. Qed.
   Definition lty_chan_rec : lty Σ := lty_rec chan_rec.
 
 End Tests.

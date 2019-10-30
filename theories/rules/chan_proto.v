@@ -79,7 +79,7 @@ Section Propers.
   Context `{heapG Σ, proto_chanG Σ}.
 
   (* TODO: Reduce proof duplication *)
-  Lemma lproto_send_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_send Σ).
+  Global Instance lproto_send_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_send Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_send.
@@ -87,7 +87,7 @@ Section Propers.
     apply iProto_message_ne; simpl; try done.
   Qed.
 
-  Lemma lproto_send_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_send Σ).
+  Global Instance lproto_send_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_send Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_send.
@@ -98,7 +98,7 @@ Section Propers.
     apply H1.
   Qed.
 
-  Lemma lproto_recv_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_recv Σ).
+  Global Instance lproto_recv_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_recv Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_recv.
@@ -106,7 +106,7 @@ Section Propers.
     apply iProto_message_ne; simpl; try done.
   Qed.
 
-  Lemma lproto_recv_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_recv Σ).
+  Global Instance lproto_recv_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_recv Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_recv.
@@ -117,7 +117,7 @@ Section Propers.
     apply H1.
   Qed.
 
-  Lemma lproto_branch_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_branch Σ).
+  Global Instance lproto_branch_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_branch Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_branch.
@@ -126,7 +126,7 @@ Section Propers.
     intros v. destruct v; done.
   Qed.
 
-  Lemma lproto_branch_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_branch Σ).
+  Global Instance lproto_branch_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_branch Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_branch.
@@ -136,7 +136,7 @@ Section Propers.
     destruct v; destruct n as [|n]; try done.
   Qed.
 
-  Lemma lproto_select_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_select Σ).
+  Global Instance lproto_select_ne n : Proper (dist n ==> dist n ==> dist n) (@lproto_select Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_select.
@@ -145,7 +145,7 @@ Section Propers.
     intros v. destruct v; done.
   Qed.
 
-  Lemma lproto_select_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_select Σ).
+  Global Instance lproto_select_contractive n : Proper (dist_later n ==> dist_later n ==> dist n) (@lproto_select Σ).
   Proof.
     intros A A' H1 P P' H2.
     rewrite /lproto_select.
