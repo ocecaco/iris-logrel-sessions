@@ -19,6 +19,22 @@ Section properties.
   Global Instance lty_forall_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _).
   Proof. solve_proper. Qed.
 
+  Global Instance lty_forall_contractive n : Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_forall Σ _).
+  Proof.
+    intros F F' A.
+    apply lty_ne.
+    intros w.
+    f_equiv.
+    intros B.
+    apply wp_contractive.
+    { done. }
+    intros u.
+    specialize (A B).
+    destruct n as [|n].
+    + done.
+    + by simpl.
+  Qed.
+
   Lemma ltyped_tlam Γ e C :
     (∀ A, Γ ⊨ e : C A) → Γ ⊨ (λ: <>, e) : ∀ A, C A.
   Proof.

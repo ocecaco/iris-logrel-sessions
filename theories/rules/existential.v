@@ -7,7 +7,7 @@ Section types.
   Context `{heapG Σ}.
 
   Definition lty_exist (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
-    ∃ A : lty Σ, C A w)%I.
+    ∃ A : lty Σ, ▷ C A w)%I.
 End types.
 
 Notation "∃ A1 .. An , C" :=
@@ -18,6 +18,9 @@ Section properties.
 
   Global Instance lty_exist_ne n : Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ).
   Proof. solve_proper. Qed.
+
+  Global Instance lty_exist_contractive n : Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist Σ).
+  Proof. solve_contractive. Qed.
 
   Lemma ltyped_pack Γ e C A :
     (Γ ⊨ e : C A) → Γ ⊨ e : ∃ A, C A.
