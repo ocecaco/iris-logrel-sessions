@@ -52,11 +52,7 @@ Section properties.
     iIntros (w) "Hw".
     wp_pures.
     rewrite /lty_chan /lty_car /=.
-    wp_apply (send_proto_spec with "Hc").
-    iExists w. simpl. iSplit=> //.
-    iFrame "Hw".
-    iModIntro.
-    iIntros "Hc".
+    wp_send with "[$Hw]".
     wp_pures.
     iFrame "Hc".
   Qed.
@@ -70,8 +66,7 @@ Section properties.
     iModIntro. iIntros (c) "Hc".
     rewrite /lty_chan /lty_car.
     rewrite /chanrecv. wp_pures.
-    wp_apply (recv_proto_spec with "Hc").
-    iIntros (v) "Hc HA". simpl. wp_pures.
+    wp_recv (v) as "HA". wp_pures.
     iExists v, c. iSplit=> //.
     iFrame "HA Hc".
   Qed.
@@ -85,13 +80,8 @@ Section properties.
     wp_apply wp_value.
     iModIntro. iIntros (c) "Hc".
     wp_pures.
-    wp_bind (send _ _).
-    wp_apply (select_spec with "[Hc]").
-    { rewrite /lty_chan /lproto_select /lty_car /lproto_car /=.
-      iSplitL.
-      - iApply "Hc".
-      - done. }
-    iIntros "Hc". wp_pures.
+    wp_select.
+    wp_pures.
     iExact "Hc".
   Qed.
 
@@ -104,13 +94,8 @@ Section properties.
     wp_apply wp_value.
     iModIntro. iIntros (c) "Hc".
     wp_pures.
-    wp_bind (send _ _).
-    wp_apply (select_spec with "[Hc]").
-    { rewrite /lty_chan /lproto_select /lty_car /lproto_car /=.
-      iSplitL.
-      - iApply "Hc".
-      - done. }
-    iIntros "Hc". wp_pures.
+    wp_select.
+    wp_pures.
     iExact "Hc".
   Qed.
 
@@ -124,10 +109,7 @@ Section properties.
     iModIntro. iIntros (c) "Hc".
     rewrite /chanbranch. wp_pures.
     rewrite {1}/lty_chan {1}/lproto_branch {1}/lty_car {1}/lproto_car.
-    wp_apply (branch_spec with "[Hc]").
-    { iExact "Hc". }
-    iIntros (b) "Hc".
-    destruct b; iDestruct "Hc" as "[Hc _]"; wp_pures.
+    wp_branch; wp_pures.
     - iLeft. iExists c. iSplit=> //.
     - iRight. iExists c. iSplit=> //.
   Qed.
