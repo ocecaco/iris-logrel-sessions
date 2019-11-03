@@ -1,156 +1,93 @@
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import notation proofmode lib.par lib.spin_lock.
-From iris.algebra Require Import agree frac csum excl.
+From iris.algebra Require Import agree frac csum excl frac_auth.
 From actris.channel Require Import proto_channel channel proofmode.
 
 Definition prog (c : val) : expr :=
   let: "lock" := newlock #() in
-  let: "d1" := new_chan #() in
-  let: "d1send" := Fst "d1" in
-  let: "d1recv" := Snd "d1" in
-  let: "d2" := new_chan #() in
-  let: "d2send" := Fst "d2" in
-  let: "d2recv" := Snd "d2" in
   (
     acquire "lock";;
-    let: "x1" := recv c in
-    release "lock";;
-    send "d1send" "x1";;
-    let: "x2" := recv "d2recv" in
-    if: "x1" ≤ "x2"
-    then acquire "lock";; send "c" "x1";; release "lock"
-    else Skip
+    recv c;;
+    release "lock"
   ) ||| (
     acquire "lock";;
-    let: "x2" := recv c in
-    release "lock";;
-    send "d2send" "x2";;
-    let: "x1" := recv "d1recv" in
-    if: "x2" < "x1"
-    then acquire "lock";; send "c" "x2";; release "lock"
-    else Skip
-  ).
+    recv c;;
+    release "lock"
+  );;
+  #().
 
 Section GhostState.
-  (* one-shot RA, slightly modified from iris-examples *)
-  Definition oneshotR := csumR (exclR unitO) (agreeR natO).
-  Class oneshotG Σ := { oneshot_inG :> inG Σ oneshotR }.
-  Definition oneshotΣ : gFunctors := #[GFunctor oneshotR].
-  Instance subG_oneshotΣ {Σ} : subG oneshotΣ Σ → oneshotG Σ.
+  Definition doubleR := frac_authR natR.
+  Class doubleG Σ := { double_inG :> inG Σ doubleR }.
+  Definition doubleΣ : gFunctors := #[GFunctor doubleR].
+  Instance subG_doubleΣ {Σ} : subG doubleΣ Σ → doubleG Σ.
   Proof. solve_inG. Qed.
 
-  Definition pending `{oneshotG Σ} γ := own γ (Cinl (Excl tt)).
-  Definition shot `{oneshotG Σ} γ (n : nat) := own γ (Cinr (to_agree n)).
+  Class fracG Σ := { frac_inG :> inG Σ fracR }.
+  Definition fracΣ : gFunctors := #[GFunctor fracR].
+  Instance subG_fracΣ {Σ} : subG fracΣ Σ → fracG Σ.
+  Proof. solve_inG. Qed.
 
-  Lemma new_pending `{oneshotG Σ} : (|==> ∃ γ, pending γ)%I.
-  Proof. by apply own_alloc. Qed.
-
-  Lemma shoot `{oneshotG Σ} (n : nat) γ : pending γ ==∗ shot γ n.
-  Proof.
-    apply own_update.
-      by apply cmra_update_exclusive.
-  Qed.
-
-  Lemma shot_not_pending `{oneshotG Σ} γ n :
-    shot γ n -∗ pending γ -∗ False.
-  Proof.
-    iIntros "Hs Hp".
-    iPoseProof (own_valid_2 with "Hs Hp") as "H".
-    iDestruct "H" as %[].
-  Qed.
-
-  Lemma shot_agree `{oneshotG Σ} γ (n m : nat) :
-    shot γ n -∗ shot γ m -∗ ⌜n = m⌝.
-  Proof.
-    iIntros "Hs1 Hs2".
-    iDestruct (own_valid_2 with "Hs1 Hs2") as %Hfoo.
-    iPureIntro. by apply agree_op_invL'.
-Qed.
+  Definition auth (n : nat) : doubleR := ●F (n : natR).
+  Definition partial (q : Qp) (n : nat) : doubleR := ◯F{q} n.
 End GhostState.
 
 Section Double.
-  Context `{heapG Σ, proto_chanG Σ, oneshotG Σ}.
+  Context `{heapG Σ, proto_chanG Σ, doubleG Σ, fracG Σ}.
+
+  Lemma partial_split γ n:
+    own γ (partial 1 n) -∗ own γ (partial (1/2) n) ∗ own γ (partial (1/2) n).
+  Proof. Admitted.
+
+  Lemma partial_inc γ q n m:
+    own γ (auth n) ∗ own γ (partial q m) ==∗ own γ (auth (n + 1)) ∗ own γ (partial q (m + 1)).
+  Proof. Admitted.
 
   Definition proto_begin : iProto Σ :=
-    (<?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%proto.
-
-  Definition chan_begin (c : val) (γ1 γ2 : gname) : iProp Σ :=
-    (c ↣ proto_begin)%I.
-  Definition chan_half1 (c : val) (γ1 γ2 : gname) : iProp Σ :=
-    (∃ x1 : nat, shot γ2 x1 ∗ c ↣ <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
-  Definition chan_half2 (c : val) (γ1 γ2 : gname) : iProp Σ :=
-    (∃ x1 : nat, shot γ1 x1 ∗ c ↣ <?> x2 : nat, MSG #x2; <!> MSG #(min x1 x2); END)%I.
-  Definition chan_whole (c : val) (γ1 γ2 : gname) : iProp Σ :=
-    (∃ x1 x2 : nat, shot γ1 x1 ∗ shot γ2 x2 ∗ c ↣ <!> MSG #(min x1 x2); END)%I.
+    (<?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; END)%proto.
 
   Definition chan_inv (c : val) (γ1 γ2 : gname) : iProp Σ :=
-    (chan_begin c γ1 γ2 ∨
-     chan_half1 c γ1 γ2 ∨
-     chan_half2 c γ1 γ2 ∨
-     chan_whole c γ1 γ2)%I.
+    ((own γ1 (auth 0) ∗ c ↣ <?> x1 : nat, MSG #x1; <?> x2 : nat, MSG #x2; END) ∨
+     (own γ1 (auth 1) ∗ own γ2 (1/2)%Qp ∗ c ↣ <?> x2 : nat, MSG #x2; END) ∨
+     (own γ1 (auth 2) ∗ own γ2 1%Qp ∗ c ↣ END))%I.
 
   Lemma wp_prog (N : namespace) (c : val):
-    {{{ c ↣ proto_begin }}} prog c {{{ v, RET v; True }}}.
+    {{{ c ↣ proto_begin }}} prog c {{{ v, RET v; ⌜v = #()⌝ }}}.
   Proof.
     iIntros (Φ) "Hc HΦ".
     rewrite /prog.
 
-    iMod new_pending as (γ1) "Hγ1".
-    iMod new_pending as (γ2) "Hγ2".
+    iMod (own_alloc (auth 0 ⋅ partial 1 0)) as (γ1) "[Hauth Hpartial]".
+    { admit. }
+    iMod (own_alloc 1%Qp) as (γ2) "[Hcredit1 Hcredit2]".
+    { admit. }
 
     (* Create lock *)
-    wp_apply (newlock_spec N (chan_inv c γ1 γ2) with "[Hc]").
-    { iLeft. iFrame "Hc". }
-    iIntros (lk γ) "#Hlock".
+    wp_apply (newlock_spec N (chan_inv c γ1 γ2) with "[Hc Hauth]").
+    { iLeft. iFrame "Hc Hauth". }
+    iIntros (lk γlk) "#Hlock".
     wp_pures.
 
-    (* Create channel A -> B *)
-    wp_apply new_chan_proto_spec.
-    { done. }
-    iIntros (d1send d1recv) "Hd1".
-    iDestruct ("Hd1" $! (<!> x : nat, MSG #x {{ shot γ1 x }}; END)%proto) as ">[Hd1send Hd1recv]".
-    wp_pures.
-
-    (* Create channel B -> A *)
-    wp_apply new_chan_proto_spec.
-    { done. }
-    iIntros (d2send d2recv) "Hd2".
-    iDestruct ("Hd2" $! (<!> x : nat, MSG #x {{ shot γ2 x }}; END)%proto) as ">[Hd2send Hd2recv]".
-    wp_pures.
+    iPoseProof (partial_split with "Hpartial") as "[Hpartial1 Hpartial2]".
 
     (* Fork into two threads *)
-    wp_apply (wp_par with "[Hd1send Hd2recv Hγ1]").
-
+    wp_bind (par _ _).
+    wp_apply (wp_par (λ _, own γ1 (partial (1/2) 1)) (λ _, own γ1 (partial (1/2) 1)) with "[Hpartial1 Hcredit1]").
     - (* Acquire lock *)
       wp_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
-      iDestruct "Hc" as "[Hc|[Hc|[Hc|Hc]]]".
-      + wp_apply (recv_proto_spec with "Hc").
-        iIntros (n) "Hc _ /=".
-        wp_pures.
-        iMod (shoot n γ1 with "Hγ1") as "#Hγ1".
-        wp_apply (release_spec with "[Hlock Hlocked Hc Hγ1]").
-        { iFrame "Hlock Hlocked".
-          iRight. iRight. iLeft.
-          iExists n. iFrame "Hγ1 Hc". }
+      iDestruct "Hc" as "[Hc|[Hc|Hc]]".
+      + iDestruct "Hc" as "[Hauth Hc]".
+        wp_recv (x1) as "_". wp_pures.
+        iMod (partial_inc with "[Hauth Hpartial1]") as "[Hauth Hpartial1]".
+        { iFrame "Hauth Hpartial1". }
+        wp_apply (release_spec with "[Hlocked Hcredit1 Hauth Hc]").
+        { iFrame "Hlock Hlocked". iRight. iLeft. iFrame "Hauth Hcredit1 Hc". }
         iIntros "_". wp_pures.
-
-        (* Send the value to the other thread *)
-        wp_apply (send_proto_spec with "Hd1send").
-        iExists n. iSplit=> //. iSplitR=> //.
-        iModIntro. iIntros "Hd1send /=". wp_pures.
-
-        (* Receive the other thread's value *)
-        wp_apply (recv_proto_spec with "Hd2recv").
-        iIntros (m) "Hd2recv #Hγ2 /=". wp_pures.
-
-        case_bool_decide; admit.
-      + admit.
-      + (* Impossible, since this means our one-shot has already been fired *)
-        admit.
-      + (* Impossible, since this means our one-shot has already been fired *)
-        admit.
+        iApply "Hpartial1".
+      +
+      + admit. (* Impossible due to fractions *)
     - admit.
   Admitted.
 
