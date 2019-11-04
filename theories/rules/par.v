@@ -9,7 +9,7 @@ Section properties.
 
   Definition parallel : val := λ: "e1" "e2", "e1" #() ||| "e2" #().
 
-  Lemma ltyped_store A B:
+  Lemma ltyped_parallel A B:
     ∅ ⊨ parallel : (() ⊸ A) → (() ⊸ B) ⊸ (A * B).
   Proof.
     iIntros (vs) "HΓ /=".
