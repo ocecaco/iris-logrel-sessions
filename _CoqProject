@@ -30,6 +30,7 @@ theories/rules/chan_proto.v
 theories/rules/chan.v
 
 theories/rules/mutex.v
+theories/rules/par.v
 
 theories/test.v
 
