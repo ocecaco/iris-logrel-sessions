@@ -46,9 +46,6 @@ Section properties.
     iFrame "Hv Hinv".
   Qed.
 
-  (* TODO: Prove load and store lemmas, hopefully in a way that there
-  isn't too much duplication with the strong reference *)
-
   Definition fetchandadd : val := λ: "r" "inc", FAA "r" "inc".
   Lemma ltyped_fetchandadd:
     ∅ ⊨ fetchandadd : weakref lty_int → lty_int → lty_int.
@@ -70,6 +67,38 @@ Section properties.
     { iModIntro. iExists #(m + k). iFrame "Hl". by iExists (m + k). }
     iModIntro.
     by iExists m.
+  Qed.
+
+  Definition weakrefload : val := λ: "r", !"r".
+  Lemma ltyped_weakrefload (A : lty Σ) {copyA : LTyCopy A} :
+    ∅ ⊨ weakrefload : weakref A → A.
+  Proof.
+    iIntros (vs) "_ /=".
+    wp_apply wp_value.
+    iModIntro. iIntros (r) "#Hr".
+    rewrite /weakrefload. wp_pures.
+    iDestruct "Hr" as (l ->) "Hr".
+    iInv (weakrefN .@ l) as (v) "[>Hl #HA]" "Hclose".
+    wp_load. iMod ("Hclose" with "[Hl HA]") as "_".
+    { iModIntro. iExists v. iFrame "Hl HA". }
+    iModIntro. iFrame "HA".
+  Qed.
+
+  Definition weakrefstore : val := λ: "r" "x", "r" <- "x";; #().
+  Lemma ltyped_weakrefstore (A : lty Σ) :
+    ∅ ⊨ weakrefstore : weakref A → A → ().
+  Proof.
+    iIntros (vs) "_ /=".
+    wp_apply wp_value.
+    iModIntro. iIntros (r) "#Hr".
+    rewrite /weakrefstore. wp_pures.
+    iModIntro. iIntros (x) "HA". wp_pures.
+    wp_bind (_ <- _)%E.
+    iDestruct "Hr" as (l ->) "Hr".
+    iInv (weakrefN .@ l) as (v) "[>Hl _]" "Hclose".
+    wp_store. iMod ("Hclose" with "[Hl HA]") as "_".
+    { iModIntro. iExists x. iFrame "Hl HA". }
+    iModIntro. wp_pures. done.
   Qed.
 
 End properties.
