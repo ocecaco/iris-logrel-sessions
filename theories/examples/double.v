@@ -30,11 +30,11 @@ Section Double.
   Context `{heapG Σ, proto_chanG Σ, fracG Σ, spawnG Σ}.
 
   Definition proto_begin : iProto Σ :=
-    (<?> x1 : Z, MSG #x1; <?> x2 : Z, MSG #x2; END)%proto.
+    (<??> lty_int; <??> lty_int; END)%lproto.
 
   Definition chan_inv (c : val) (γ : gname) : iProp Σ :=
-    ((c ↣ <?> x1 : Z, MSG #x1; <?> x2 : Z, MSG #x2; END) ∨
-     (own γ (1/2)%Qp ∗ c ↣ <?> x2 : Z, MSG #x2; END) ∨
+    ((c ↣ (<??> lty_int; <??> lty_int; END)%lproto) ∨
+     (own γ (1/2)%Qp ∗ c ↣ (<??> lty_int; END)%lproto) ∨
      (own γ 1%Qp ∗ c ↣ END))%I.
 
   Lemma wp_prog (N : namespace) (c : val):
@@ -59,18 +59,20 @@ Section Double.
       wp_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
       iDestruct "Hc" as "[Hc|[Hc|Hc]]".
-      + wp_recv (x1) as "_". wp_pures.
+      + wp_recv (x1) as "#Hx1". wp_pures.
         wp_apply (release_spec with "[Hlocked Hcredit1 Hc]").
         { iFrame "Hlock Hlocked". iRight. iLeft. iFrame "Hcredit1 Hc". }
         iIntros "_". wp_pures.
-        by iExists x1.
+        iDestruct "Hx1" as (k) "->".
+        by iExists k.
       + iDestruct "Hc" as "[Hcredit2 Hc]".
-        wp_recv (x1) as "_". wp_pures.
+        wp_recv (x1) as "Hx1". wp_pures.
         iCombine "Hcredit1 Hcredit2" as "Hcredit".
         wp_apply (release_spec with "[Hlocked Hcredit Hc]").
         { iFrame "Hlock Hlocked". iRight. iRight. iFrame "Hcredit Hc". }
         iIntros "_". wp_pures.
-        by iExists x1.
+        iDestruct "Hx1" as (k) "->".
+        by iExists k.
       + iDestruct "Hc" as "[Hcredit2 Hc]".
         iCombine "Hcredit1 Hcredit2" as "Hcredit".
         iExFalso. iDestruct (own_valid with "Hcredit") as "%".
@@ -79,18 +81,20 @@ Section Double.
       wp_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
       iDestruct "Hc" as "[Hc|[Hc|Hc]]".
-      + wp_recv (x1) as "_". wp_pures.
+      + wp_recv (x1) as "#Hx1". wp_pures.
         wp_apply (release_spec with "[Hlocked Hcredit2 Hc]").
         { iFrame "Hlock Hlocked". iRight. iLeft. iFrame "Hcredit2 Hc". }
         iIntros "_". wp_pures.
-        by iExists x1.
+        iDestruct "Hx1" as (k) "->".
+        by iExists k.
       + iDestruct "Hc" as "[Hcredit1 Hc]".
-        wp_recv (x1) as "_". wp_pures.
+        wp_recv (x1) as "Hx1". wp_pures.
         iCombine "Hcredit1 Hcredit2" as "Hcredit".
         wp_apply (release_spec with "[Hlocked Hcredit Hc]").
         { iFrame "Hlock Hlocked". iRight. iRight. iFrame "Hcredit Hc". }
         iIntros "_". wp_pures.
-        by iExists x1.
+        iDestruct "Hx1" as (k) "->".
+        by iExists k.
       + iDestruct "Hc" as "[Hcredit1 Hc]".
         iCombine "Hcredit1 Hcredit2" as "Hcredit".
         iExFalso. iDestruct (own_valid with "Hcredit") as "%".
@@ -110,11 +114,11 @@ Section Double.
     wp_apply wp_value.
     iModIntro. iIntros (c) "Hc".
     wp_apply (wp_prog N with "[Hc]").
-    { iModIntro. admit. }
+    { iModIntro. iFrame "Hc". }
     iIntros (r) "Hr".
     iDestruct "Hr" as (k1 k2) "->".
     iExists #k1, #k2. iSplit=> //.
     iSplit; by eauto.
-  Admitted.
+  Qed.
 
 End Double.
